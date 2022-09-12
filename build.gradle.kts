@@ -18,6 +18,7 @@ repositories {
 dependencies {
     implementation("com.squareup:javapoet:1.13.0")
 
+    testImplementation("com.google.testing.compile:compile-testing:0.19")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
 }
