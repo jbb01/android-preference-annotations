@@ -1,5 +1,6 @@
 package eu.jonahbauer.android.preference.annotations.processor;
 
+import com.squareup.javapoet.*;
 import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.Preferences;
 import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
@@ -7,12 +8,15 @@ import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -21,86 +25,14 @@ import java.util.function.Function;
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 public final class PreferenceProcessor extends AbstractProcessor {
-    private static final String PACKAGE_DECLARATION =           "package %s ;%n";
-    private static final String IMPORT_DECLARATION =            "import android.content.SharedPreferences;%n" +
-                                                                "import android.content.res.Resources;%n" +
-                                                                "import java.util.Objects;%n" +
-                                                                "import %s;%n";
-    private static final String CLASS_DECLARATION_START =       "class %1$s {%n" +
-                                                                "    protected %1$s() {%n" +
-                                                                "        throw new IllegalStateException(\"This class is not supposed to be instantiated.\");%n" +
-                                                                "    }%n";
-    private static final String CLASS_DECLARATION_START_FINAL = "public final class %1$s {%n" +
-                                                                "    private %1$s() {%n" +
-                                                                "        throw new IllegalStateException(\"This class is not supposed to be instantiated.\");%n" +
-                                                                "    }%n";
-    private static final String CLASS_PREFERENCES_DECLARATION = "    private static SharedPreferences sharedPreferences;%n";
-    private static final String GROUP_FIELD_DECLARATION =       "    private static %1$s group$%2$d;%n";
-    private static final String CLASS_INITIALIZER_START =       "    /**%n" +
-                                                                "     * Initialize this preference class to use the given {@link SharedPreferences}.%n" +
-                                                                "     * This function is supposed to be called from the applications {@code onCreate()} method.%n" +
-                                                                "     * @param pSharedPreferences the {@link SharedPreferences} to be used. Not {@code null}.%n" +
-                                                                "     * @param pResources the {@link Resources} from which the preference keys should be loaded. Not {@code null}.%n" +
-                                                                "     * @throws IllegalStateException if this preference class has already been initialized.%n" +
-                                                                "    */%n" +
-                                                                "    public static void init(SharedPreferences pSharedPreferences, Resources pResources) {%n" +
-                                                                "        if (sharedPreferences != null) {%n" +
-                                                                "            throw new IllegalStateException(\"Preferences have already been initialized.\");%n" +
-                                                                "        }%n" +
-                                                                "        Objects.requireNonNull(pSharedPreferences, \"SharedPreferences must not be null.\");%n" +
-                                                                "        Objects.requireNonNull(pResources, \"Resources must not be null.\");%n" +
-                                                                "        sharedPreferences = pSharedPreferences;%n";
-    private static final String CLASS_INITIALIZER_FIELD =       "        group$%2$d = new %1$s(pResources);%n";
-    private static final String CLASS_INITIALIZER_END =         "    }%n";
-    private static final String GROUP_ACCESSOR_DECLARATION =    "    public static %1$s %1$s() {%n" +
-                                                                "        if (sharedPreferences == null) {%n" +
-                                                                "            throw new IllegalStateException(\"Preferences have not yet been initialized.\");%n" +
-                                                                "        }%n" +
-                                                                "        return group$%2$d;%n" +
-                                                                "    }%n";
-    private static final String GROUP_CLASS_DECLARATION_START = "    public static final class %s {%n";
-    private static final String PROPERTY_KEY =                  "        private final String key$%d;%n";
-    private static final String GROUP_CLASS_CONSTRUCTOR_START = "        private %s(Resources resources) {%n";
-    private static final String PROPERTY_KEY_INITIALIZER =      "            key$%d = resources.getString(R.string.%s);%n";
-    private static final String GROUP_CLASS_CONSTRUCTOR_END =   "        }%n";
-    private static final String PROPERTY_DOCUMENTATION =        "        /**%n" +
-                                                                "         * %s%n" +
-                                                                "         * (default: {@code %s})%n" +
-                                                                "         */%n";
-    private static final String PROPERTY_GETTER_START =         "        public %s %s() {%n";
-    private static final String PROPERTY_GETTER_BODY_BOOLEAN =  "            return sharedPreferences.getBoolean(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_BODY_INTEGER =  "            return sharedPreferences.getInt(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_BODY_BYTE =     "            return (byte) sharedPreferences.getInt(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_BODY_SHORT =    "            return (short) sharedPreferences.getInt(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_BODY_CHAR =     "            return (char) sharedPreferences.getInt(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_BODY_LONG =     "            return sharedPreferences.getLong(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_BODY_FLOAT =    "            return sharedPreferences.getFloat(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_BODY_DOUBLE =   "            return Double.longBitsToDouble(sharedPreferences.getLong(key$%d, %s));%n";
-    private static final String PROPERTY_GETTER_BODY_STRING =   "            return sharedPreferences.getString(key$%d, %s);%n";
-    private static final String PROPERTY_GETTER_END =           "        }%n";
-    private static final String PROPERTY_SETTER_START =         "        public void %2$s(%1$s value) {%n";
-    private static final String PROPERTY_SETTER_BODY_BOOLEAN =  "           sharedPreferences.edit().putBoolean(key$%d, value).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_INTEGER =  "           sharedPreferences.edit().putInt(key$%d, value).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_BYTE =     "           sharedPreferences.edit().putInt(key$%d, (int) value).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_SHORT =    "           sharedPreferences.edit().putInt(key$%d, (int) value).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_CHAR =     "           sharedPreferences.edit().putInt(key$%d, (int) value).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_LONG =     "           sharedPreferences.edit().putLong(key$%d, value).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_FLOAT =    "           sharedPreferences.edit().putFloat(key$%d, value).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_DOUBLE =   "           sharedPreferences.edit().putLong(key$%d, Double.doubleToRawLongBits(value)).apply();%n";
-    private static final String PROPERTY_SETTER_BODY_STRING =   "           sharedPreferences.edit().putString(key$%d, value).apply();%n";
-    private static final String PROPERTY_SETTER_END =           "        }%n";
-    private static final String KEY_CLASS_FIELD_DECLARATION =   "        private final Keys keys = new Keys();%n";
-    private static final String KEY_CLASS_ACCESSOR =            "        public Keys keys() {%n" +
-                                                                "            return keys;%n" +
-                                                                "        }%n";
-    private static final String KEY_CLASS_DECLARATION_START =   "        public final class Keys {%n" +
-                                                                "            private Keys() {}%n";
-    private static final String KEY_CLASS_PROPERTY_ACCESSOR =   "            public String %s() {%n" +
-                                                                "                return key$%d;%n" +
-                                                                "            }%n";
-    private static final String KEY_CLASS_DECLARATION_END =     "        }%n";
-    private static final String GROUP_CLASS_DECLARATION_END =   "    }%n";
-    private static final String CLASS_DECLARATION_END =         "}%n";
+    private static final ClassName SHARED_PREFERENCES = ClassName.get("android.content", "SharedPreferences");
+    private static final ClassName RESOURCES = ClassName.get("android.content.res", "Resources");
+    private static final ClassName ILLEGAL_STATE_EXCEPTION = ClassName.get("java.lang", "IllegalStateException");
+    private static final ClassName OBJECTS = ClassName.get("java.util", "Objects");
+
+    private static final Set<String> SUPPORTED_DECLARED_TYPES = Set.of(
+            String.class.getName()
+    );
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -109,10 +41,10 @@ public final class PreferenceProcessor extends AbstractProcessor {
         try {
             for (Element clazz : clazzes) {
                 var root = clazz.getAnnotation(Preferences.class);
-                var source = processingEnv.getFiler().createSourceFile(root.name());
 
-                try (var out = new PrintWriter(source.openWriter())) {
-                    writeRootClass(out, root);
+                if (checkPreferences(clazz, root)) {
+                    var type = buildRootClass(root);
+                    type.writeTo(processingEnv.getFiler());
                 }
             }
             return true;
@@ -121,206 +53,375 @@ public final class PreferenceProcessor extends AbstractProcessor {
         }
     }
 
-    private void writeRootClass(PrintWriter out, Preferences root) throws IOException {
+    private static JavaFile buildRootClass(Preferences root) {
+        var name = ClassName.get(
+                root.name().lastIndexOf('.') != -1 ? root.name().substring(0, root.name().lastIndexOf('.')) : "",
+                root.name().lastIndexOf('.') != -1 ? root.name().substring(root.name().lastIndexOf('.') + 1) : root.name()
+        );
+
         var groups = root.value();
-        var fqcn = root.name();
-        if (!StringUtils.isFQCN(root.name())) {
-            throw new IllegalArgumentException("Illegal preference class name " + root.name() + ".");
-        }
-        var pckg = fqcn.lastIndexOf('.') != -1 ? fqcn.substring(0, fqcn.lastIndexOf('.')) : "";
-        var cn = fqcn.lastIndexOf('.') != -1 ? fqcn.substring(fqcn.lastIndexOf('.') + 1) : fqcn;
-        var r = mirror(root, Preferences::r);
+        var r = TypeName.get(mirror(root, Preferences::r));
 
-        if (!pckg.isEmpty()) out.printf(PACKAGE_DECLARATION, pckg);
-        out.println();
-        out.printf(IMPORT_DECLARATION, r);
-        out.println();
+        var builder = TypeSpec.classBuilder(name);
+
         if (root.makeFile()) {
-            out.printf(CLASS_DECLARATION_START_FINAL, cn);
-        } else {
-            out.printf(CLASS_DECLARATION_START, cn);
+            builder.addModifiers(Modifier.PUBLIC, Modifier.FINAL);
         }
 
-        out.printf(CLASS_PREFERENCES_DECLARATION);
+        // constructor
+        builder.addMethod(MethodSpec.constructorBuilder()
+                                    .addModifiers(root.makeFile() ? Modifier.PRIVATE : Modifier.PROTECTED)
+                                    .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "This class is not supposed to be instantiated.")
+                                    .build()
+        );
+
+        // shared preferences
+        var sharedPreferencesField = FieldSpec.builder(SHARED_PREFERENCES, "sharedPreferences", Modifier.PRIVATE, Modifier.STATIC).build();
+        builder.addField(sharedPreferencesField);
+
+        // init method
+        var initMethod = MethodSpec.methodBuilder("init")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addParameter(SHARED_PREFERENCES, "pSharedPreferences")
+                .addParameter(RESOURCES, "pResources")
+                .addJavadoc("Initialize this preference class to use the given {@link $T}\n", SHARED_PREFERENCES)
+                .addJavadoc("This function is supposed to be called from the applications {@code onCreate()} method.\n")
+                .addJavadoc("@param pSharedPreferences the {@link $T} to be used. Not {@code null}.\n", SHARED_PREFERENCES)
+                .addJavadoc("@param pResources the {@link $T} from which the preference keys should be loaded. Not {@code null}.\n", RESOURCES)
+                .addJavadoc("@throws $T if this preference class has already been initialized.\n", ILLEGAL_STATE_EXCEPTION)
+                .addCode(CodeBlock.builder()
+                                  .beginControlFlow("if ($N != null)", sharedPreferencesField)
+                                  .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "Preferences have already been initialized.")
+                                  .endControlFlow()
+                                  .addStatement("$T.requireNonNull(pSharedPreferences, $S)", OBJECTS, "SharedPreferences must not be null.")
+                                  .addStatement("$T.requireNonNull(pResources, $S)", OBJECTS, "Resources must not be null.")
+                                  .addStatement("$N = pSharedPreferences", sharedPreferencesField)
+                                  .build()
+                );
+
+        // group classes, fields, accessors and init statements
         for (int i = 0; i < groups.length; i++) {
-            out.printf(GROUP_FIELD_DECLARATION, groups[i].name(), i);
-        }
-        out.println();
+            var groupClassName = name.nestedClass(groups[i].name());
+            var groupClass = buildGroupClass(groupClassName, groups[i], r, sharedPreferencesField);
+            var groupField = FieldSpec.builder(groupClassName, "group$" + i, Modifier.PRIVATE, Modifier.STATIC).build();
 
-        out.printf(CLASS_INITIALIZER_START);
-        for (int i = 0; i < groups.length; i++) {
-            out.printf(CLASS_INITIALIZER_FIELD, groups[i].name(), i);
-        }
-        out.printf(CLASS_INITIALIZER_END);
-        out.println();
-
-        for (int i = 0; i < groups.length; i++) {
-            out.printf(GROUP_ACCESSOR_DECLARATION, groups[i].name(), i);
-        }
-        out.println();
-
-        for (PreferenceGroup group : groups) {
-            if (!StringUtils.isJavaIdentifier(group.name())) {
-                throw new IllegalArgumentException("Illegal preference group name " + group.name() + ".");
-            }
-            if (!group.prefix().isEmpty() && !StringUtils.isJavaIdentifier(group.prefix())) {
-                throw new IllegalArgumentException("Illegal preference group prefix " + group.prefix() + ".");
-            }
-            if (!group.suffix().isEmpty() && !group.suffix().matches("\\p{javaJavaIdentifierPart}*")) {
-                throw new IllegalArgumentException("Illegal preference group suffix " + group.suffix() + ".");
-            }
-            writeGroupClass(out, group);
+            initMethod.addStatement("$N = new $T(pResources)", groupField, groupClassName);
+            builder.addType(groupClass);
+            builder.addField(groupField);
+            builder.addMethod(buildGroupAccessor(groups[i], groupField, sharedPreferencesField));
         }
 
-        out.printf(CLASS_DECLARATION_END);
+        builder.addMethod(initMethod.build());
+
+        return JavaFile.builder(name.packageName(), builder.build()).indent("    ").build();
     }
 
-    private void writeGroupClass(PrintWriter out, PreferenceGroup group) {
+    /**
+     * <pre>{@code public static ${group.name} ${group.name}() {}}</pre>
+     */
+    private static MethodSpec buildGroupAccessor(PreferenceGroup group, FieldSpec groupField, FieldSpec sharedPreferences) {
+        return MethodSpec.methodBuilder(group.name())
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(groupField.type)
+                .addCode(CodeBlock.builder()
+                                 .beginControlFlow("if ($N == null)", sharedPreferences)
+                                 .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
+                                 .endControlFlow()
+                                 .addStatement("return $N", groupField)
+                                 .build()
+                )
+                .build();
+    }
+
+    /**
+     * <pre>{@code public static final ${group.name} {
+     *     private final Keys keys;
+     *     private final String key$i;
+     *
+     *     private ${group.name}(Resources resources) {
+     *         this.keys = new Keys();
+     *         this.key$i = resources.get(R.string.${preferences[i].name});
+     *     }
+     *
+     *     // preference accessors
+     *
+     *     // key class
+     * }}</pre>
+     */
+    private static TypeSpec buildGroupClass(ClassName name, PreferenceGroup group, TypeName r, FieldSpec sharedPreferences) {
         var preferences = group.value();
 
-        out.printf(GROUP_CLASS_DECLARATION_START, group.name());
+        var type = TypeSpec
+                .classBuilder(name)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
 
-        // Keys
-        out.printf(KEY_CLASS_FIELD_DECLARATION);
-        for (int j = 0; j < preferences.length; j++) {
-            out.printf(PROPERTY_KEY, j);
-        }
-        out.println();
+        var constructorCode = CodeBlock.builder();
+        var keys = new HashMap<Preference, FieldSpec>();
 
-        // Constructor
-        out.printf(GROUP_CLASS_CONSTRUCTOR_START, group.name());
         for (int i = 0; i < preferences.length; i++) {
-            if (!StringUtils.isJavaIdentifier(preferences[i].name())) {
-                throw new IllegalArgumentException("Illegal preference name " + preferences[i].name() + ".");
-            }
-            if (!StringUtils.isJavaIdentifier(group.prefix() + preferences[i].name() + group.suffix())) {
-                throw new IllegalArgumentException("Illegal preference name " + preferences[i].name() + ".");
-            }
-            out.printf(PROPERTY_KEY_INITIALIZER, i, group.prefix() + preferences[i].name() + group.suffix());
+            var key = FieldSpec.builder(String.class, "key$" + i, Modifier.PRIVATE, Modifier.FINAL).build();
+            type.addField(key);
+            keys.put(preferences[i], key);
+
+            constructorCode.addStatement("$N = resources.getString($T.string.$N)", key, r, group.prefix() + preferences[i].name() + group.suffix());
+            var getter = buildGetter(preferences[i], sharedPreferences, key);
+            var setter = buildSetter(preferences[i], sharedPreferences, key);
+            if (getter != null) type.addMethod(getter);
+            if (setter != null) type.addMethod(setter);
         }
-        out.printf(GROUP_CLASS_CONSTRUCTOR_END);
-        out.println();
 
-        // Key class accessor
-        out.printf(KEY_CLASS_ACCESSOR);
-        out.println();
+        type.addMethod(
+                MethodSpec.constructorBuilder()
+                        .addModifiers(Modifier.PRIVATE)
+                        .addParameter(RESOURCES, "resources")
+                        .addCode(constructorCode.build())
+                        .build()
+        );
 
-        // Getters
-        for (int j = 0; j < preferences.length; j++) {
-            writeGetter(out, preferences[j], j);
-        }
-        out.println();
+        var keyClassName = name.nestedClass("Keys");
+        var keyClass = buildKeyClass(keyClassName, keys);
+        var keyField = FieldSpec
+                .builder(keyClassName, "keys", Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("new $T()", keyClassName)
+                .build();
 
-        // Setters
-        for (int j = 0; j < preferences.length; j++) {
-            writeSetter(out, preferences[j], j);
-        }
-        out.println();
+        type.addType(keyClass);
+        type.addField(keyField);
+        type.addMethod(
+                MethodSpec.methodBuilder("keys")
+                        .addModifiers(Modifier.PUBLIC)
+                        .returns(keyClassName)
+                        .addStatement("return $N", keyField)
+                        .build()
+        );
 
-        // Key class
-        out.printf(KEY_CLASS_DECLARATION_START);
-        for (int j = 0; j < preferences.length; j++) {
-            out.printf(KEY_CLASS_PROPERTY_ACCESSOR, StringUtils.getMethodName(preferences[j].name()), j);
-        }
-        out.printf(KEY_CLASS_DECLARATION_END);
-        out.println();
-
-        out.printf(GROUP_CLASS_DECLARATION_END);
-        out.println();
+        return type.build();
     }
 
-    private static void writeGetter(PrintWriter out, Preference preference, int index) {
-        var type = mirror(preference, Preference::type);
-        if (type.getKind() == TypeKind.VOID) return;
+    /**
+     * <pre>{@code
+     * public final Keys {
+     *     private Keys() {}
+     *     public String ${preferences[i].name}() {
+     *         return key$i;
+     *     }
+     * }}</pre>
+     */
+    private static TypeSpec buildKeyClass(ClassName name, Map<Preference, FieldSpec> preferences) {
+        var builder = TypeSpec.classBuilder(name).addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+        builder.addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE).build());
 
-        writeDocumentation(out, preference, type);
-        out.printf(PROPERTY_GETTER_START, type, StringUtils.getMethodName(preference.name()));
+        preferences.forEach((preference, key) -> builder.addMethod(
+                MethodSpec.methodBuilder(StringUtils.getMethodName(preference.name()))
+                        .addModifiers(Modifier.PUBLIC)
+                        .returns(String.class)
+                        .addCode(CodeBlock.builder()
+                                         .addStatement("return $N", key)
+                                         .build())
+                        .build()
+        ));
+
+        return builder.build();
+    }
+
+    /**
+     * <pre>{@code public ${preference.type} ${preference.name}() {
+     *     return sharedPreferences.get${preference.type}(${preference.key});
+     * }}</pre>
+     */
+    private static MethodSpec buildGetter(Preference preference, FieldSpec sharedPreferences, FieldSpec key) {
+        var type = mirror(preference, Preference::type);
+
+        var builder = MethodSpec.methodBuilder(StringUtils.getMethodName(preference.name()))
+                  .returns(TypeName.get(type))
+                  .addModifiers(Modifier.PUBLIC);
+
+        addJavadoc(builder, preference, type);
+
         switch (type.getKind()) {
             case BOOLEAN:
-                out.printf(PROPERTY_GETTER_BODY_BOOLEAN, index, getDefaultValue(preference, type));
+                builder.addStatement("return $N.getBoolean($N, $L)", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
             case BYTE:
-                out.printf(PROPERTY_GETTER_BODY_BYTE, index, getDefaultValue(preference, type));
+                builder.addStatement("return (byte) $N.getInt($N, $L)", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
             case CHAR:
-                out.printf(PROPERTY_GETTER_BODY_CHAR, index, getDefaultValue(preference, type));
+                builder.addStatement("return (char) $N.getInt($N, $L)", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
             case SHORT:
-                out.printf(PROPERTY_GETTER_BODY_SHORT, index, getDefaultValue(preference, type));
+                builder.addStatement("return (short) $N.getInt($N, $L)", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
             case INT:
-                out.printf(PROPERTY_GETTER_BODY_INTEGER, index, getDefaultValue(preference, type));
+                builder.addStatement("return $N.getInt($N, $L)", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
             case LONG:
-                out.printf(PROPERTY_GETTER_BODY_LONG, index, getDefaultValue(preference, type));
+                builder.addStatement("return $N.getLong($N, $L)", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
             case FLOAT:
-                out.printf(PROPERTY_GETTER_BODY_FLOAT, index, getDefaultValue(preference, type));
+                builder.addStatement("return $N.getFloat($N, $L)", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
             case DOUBLE:
-                out.printf(PROPERTY_GETTER_BODY_DOUBLE, index, getDefaultValue(preference, type));
+                builder.addStatement("return Double.longBitsToDouble($N.getLong($N, $L))", sharedPreferences, key, getDefaultValue(preference, type));
                 break;
+            case DECLARED:
+                if (String.class.getName().equals(type.toString())) {
+                    builder.addStatement("return $N.getString($N, $S)", sharedPreferences, key, getDefaultValue(preference, type));
+                    break;
+                } else {
+                    return null;
+                }
+            default:
+                return null;
         }
-        if (String.class.getName().equals(type.toString())) {
-            out.printf(PROPERTY_GETTER_BODY_STRING, index, getDefaultValue(preference, type));
-        }
-        out.printf(PROPERTY_GETTER_END);
+
+        return builder.build();
     }
 
-    private static void writeSetter(PrintWriter out, Preference preference, int index) {
+    /**
+     * <pre>{@code public void ${preference.name}(${preference.type} value) {
+     *     return sharedPreferences.edit().put${preference.type}(${preference.key}, value).apply();
+     * }}</pre>
+     */
+    private static MethodSpec buildSetter(Preference preference, FieldSpec sharedPreferences, FieldSpec key) {
         var type = mirror(preference, Preference::type);
-        if (type.getKind() == TypeKind.VOID) return;
 
-        writeDocumentation(out, preference, type);
-        out.printf(PROPERTY_SETTER_START, type, StringUtils.getMethodName(preference.name()));
+        var builder = MethodSpec.methodBuilder(StringUtils.getMethodName(preference.name()))
+                                .addParameter(TypeName.get(type), "value")
+                                .addModifiers(Modifier.PUBLIC);
+
+        addJavadoc(builder, preference, type);
+
         switch (type.getKind()) {
             case BOOLEAN:
-                out.printf(PROPERTY_SETTER_BODY_BOOLEAN, index);
+                builder.addStatement("$N.edit().putBoolean($N, value).apply()", sharedPreferences, key);
                 break;
             case BYTE:
-                out.printf(PROPERTY_SETTER_BODY_BYTE, index);
-                break;
             case SHORT:
-                out.printf(PROPERTY_SETTER_BODY_SHORT, index);
-                break;
             case CHAR:
-                out.printf(PROPERTY_SETTER_BODY_CHAR, index);
-                break;
             case INT:
-                out.printf(PROPERTY_SETTER_BODY_INTEGER, index);
+                builder.addStatement("$N.edit().putInt($N, (int) value).apply()", sharedPreferences, key);
                 break;
             case LONG:
-                out.printf(PROPERTY_SETTER_BODY_LONG, index);
+                builder.addStatement("$N.edit().putLong($N, value).apply()", sharedPreferences, key);
                 break;
             case FLOAT:
-                out.printf(PROPERTY_SETTER_BODY_FLOAT, index);
+                builder.addStatement("$N.edit().putFloat($N, value).apply()", sharedPreferences, key);
                 break;
             case DOUBLE:
-                out.printf(PROPERTY_SETTER_BODY_DOUBLE, index);
+                builder.addStatement("$N.edit().putLong($N, Double.doubleToRawLongBits(value)).apply()", sharedPreferences, key);
                 break;
+            case DECLARED:
+                if (String.class.getName().equals(type.toString())) {
+                    builder.addStatement("$N.edit().putString($N, value).apply()", sharedPreferences, key);
+                    break;
+                } else {
+                    return null;
+                }
+            default:
+                return null;
         }
-        if (String.class.getName().equals(type.toString())) {
-            out.printf(PROPERTY_SETTER_BODY_STRING, index);
-        }
-        out.printf(PROPERTY_SETTER_END);
+
+        return builder.build();
     }
 
-    private static void writeDocumentation(PrintWriter out, Preference preference, TypeMirror type) {
+    private static void addJavadoc(MethodSpec.Builder method, Preference preference, TypeMirror type) {
         if (preference.description().isEmpty()) return;
-        out.printf(PROPERTY_DOCUMENTATION, preference.description(), getDefaultValue(preference, type));
+
+        method.addJavadoc(preference.description());
+
+        if (type.getKind() == TypeKind.DECLARED && String.class.getName().equals(type.toString())) {
+            method.addJavadoc("\n(default: $S)", getDefaultValue(preference, type));
+        } else {
+            method.addJavadoc("\n(default: $L)", getDefaultValue(preference, type));
+        }
     }
 
-    private static String getDefaultValue(Preference preference, TypeMirror type) {
+    private boolean checkPreferences(Element element, Preferences root) {
+        boolean success = true;
+        if (!StringUtils.isFQCN(root.name())) {
+            success = false;
+            processingEnv.getMessager().printMessage(
+                    Diagnostic.Kind.ERROR,
+                    "Illegal preference class name: " + root.name(),
+                    element
+            );
+        }
+
+        for (var preferenceGroup : root.value()) {
+            success &= checkPreferenceGroup(element, preferenceGroup);
+        }
+
+        return success;
+    }
+
+    private boolean checkPreferenceGroup(Element element, PreferenceGroup group) {
+        boolean success = true;
+        if (!StringUtils.isJavaIdentifier(group.name())) {
+            success = false;
+            error(element, "Illegal preference group name: %s", group.name());
+        } else if (!group.prefix().isEmpty() && !StringUtils.isJavaIdentifier(group.prefix())) {
+            success = false;
+            error(element, "Illegal preference group prefix: %s", group.prefix());
+        } else if (!group.suffix().isEmpty() && !group.suffix().matches("\\p{javaJavaIdentifierPart}+")) {
+            success = false;
+            error(element, "Illegal preference group suffix: %s", group.suffix());
+        }
+
+        for (Preference preference : group.value()) {
+            success &= checkPreference(element, preference);
+        }
+
+        return success;
+    }
+
+    private boolean checkPreference(Element element, Preference preference) {
+        boolean success = true;
+        if (!StringUtils.isJavaIdentifier(preference.name())) {
+            success = false;
+            error(element, "Illegal preference name: %s", preference.name());
+        }
+
+        success &= checkType(element, preference);
+        return success;
+    }
+
+    private boolean checkType(Element element, Preference preference) {
+        var type = mirror(preference, Preference::type);
+
+        switch (type.getKind()) {
+            case BOOLEAN:
+            case BYTE:
+            case CHAR:
+            case SHORT:
+            case INT:
+            case LONG:
+            case FLOAT:
+            case DOUBLE:
+            case VOID:
+                return true;
+            case DECLARED:
+                if (!SUPPORTED_DECLARED_TYPES.contains(type.toString())) {
+                    error(element, "Unsupported preference type: %s", type);
+                    return false;
+                }
+                return true;
+            default:
+                error(element, "Unsupported preference type: %s", type);
+                return false;
+        }
+    }
+
+    private void error(Element element, String message, Object...args) {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, String.format(message, args), element);
+    }
+
+    private static Object getDefaultValue(Preference preference, TypeMirror type) {
         if (!Preference.NO_DEFAULT_VALUE.equals(preference.defaultValue())) {
-            if (String.class.getName().equals(type.toString())) {
-                return "\"" + StringUtils.escape(preference.defaultValue()) + "\"";
-            } else {
-                return preference.defaultValue();
-            }
+            return preference.defaultValue();
         } else switch (type.getKind()) {
-            case BOOLEAN: return "false";
-            case BYTE: case CHAR: case SHORT: case INT: case LONG: case FLOAT: case DOUBLE: return "0";
-            case ARRAY: case NULL: case DECLARED: return "null";
+            case BOOLEAN: return false;
+            case BYTE: case CHAR: case SHORT: case INT: case LONG: case FLOAT: case DOUBLE: return 0;
+            case ARRAY: case NULL: case DECLARED: case VOID: return null;
             default: throw new RuntimeException();
         }
     }
