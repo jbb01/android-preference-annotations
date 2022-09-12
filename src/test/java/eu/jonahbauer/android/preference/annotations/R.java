@@ -13,5 +13,6 @@ public final class R {
         public static int preferences_general_void_pref_key = 8;
 
         public static int preferences_general_object_pref_key = 9;
+        public static int preferences_general_big_int_pref_key = 10;
     }
 }

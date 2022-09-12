@@ -1,5 +1,7 @@
 package eu.jonahbauer.android.preference.annotations;
 
+import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -57,4 +59,9 @@ public @interface Preference {
      * A description that will be used as documentation for the preference accessors in the generated class.
      */
     String description() default "";
+
+    /**
+     * A serializer used for converting the preference type to a type supported by {@code SharedPreferences} and back.
+     */
+    Class<? extends Serializer> serializer() default Serializer.class;
 }

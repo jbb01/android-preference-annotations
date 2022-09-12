@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +37,7 @@ public class PreferenceAnnotationProcessorTest {
                 .put(R.string.preferences_general_double_pref_key, "preferences.general.double")
                 .put(R.string.preferences_general_string_pref_key, "preferences.general.string")
                 .put(R.string.preferences_general_void_pref_key, "preferences.general.void")
+                .put(R.string.preferences_general_big_int_pref_key, "preferences.general.big_int")
                 .build();
 
     }
@@ -73,6 +75,33 @@ public class PreferenceAnnotationProcessorTest {
                 new Preference<>("bytePref", byte.class, (byte) 5, (byte) 16, "preferences.general.byte"),
                 new Preference<>("stringPref", String.class, "this has to be \"quoted\" 'properly'", "Hello World!", "preferences.general.string")
         )));
+    }
+
+    @Test
+    public void testSuccessfulCompilationWithSerializer() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        var compilation = compile("input/TestPreferencesSerializer.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        check(clazz, Map.of("general", List.of(
+                new Preference<>("bigIntPref", BigInteger.class, null, BigInteger.valueOf(12345), "preferences.general.big_int")
+        )));
+    }
+
+    @Test
+    public void testIncompatibleSerializer() {
+        var compilation = compile("input/TestPreferencesIncompatibleSerializer.java");
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("Incompatible serializer eu.jonahbauer.android.preference.annotations.sources.TestPreferencesIncompatibleSerializer.VoidSerializer for preference big_int_pref");
+    }
+
+    @Test
+    public void testUnsupportedSerializer() {
+        var compilation = compile("input/TestPreferencesUnsupportedSerializer.java");
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("Unsupported serializer target type: java.lang.Object");
     }
 
     @Test
