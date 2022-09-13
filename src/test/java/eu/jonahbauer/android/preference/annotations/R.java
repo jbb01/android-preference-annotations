@@ -14,5 +14,6 @@ public final class R {
 
         public static int preferences_general_object_pref_key = 9;
         public static int preferences_general_big_int_pref_key = 10;
+        public static int preferences_general_enum_pref_key = 11;
     }
 }

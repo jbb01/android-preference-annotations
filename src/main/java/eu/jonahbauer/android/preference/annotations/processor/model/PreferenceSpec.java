@@ -1,12 +1,10 @@
 package eu.jonahbauer.android.preference.annotations.processor.model;
 
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.processor.StringUtils;
 import eu.jonahbauer.android.preference.annotations.processor.TypeUtils;
+import eu.jonahbauer.android.preference.annotations.serializer.EnumSerializer;
 import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
 import lombok.Value;
 
@@ -67,7 +65,14 @@ public class PreferenceSpec {
 
         var serializerImpl = TypeUtils.mirror(preference, Preference::serializer);
         if (TypeUtils.isSame(Serializer.class, serializerImpl)) {
-            serializedType = deserializedType;
+            if (TypeUtils.isEnum(env, deserializedType)) {
+                serializedType = env.getElementUtils().getTypeElement("java.lang.String").asType();
+                serializer = FieldSpec.builder(ParameterizedTypeName.get(ClassName.get(EnumSerializer.class), TypeName.get(deserializedType)), "serializer$" + index, Modifier.PRIVATE, Modifier.FINAL)
+                        .initializer("new $T<>($T.class)", TypeName.get(EnumSerializer.class), deserializedType)
+                        .build();
+            } else {
+                serializedType = deserializedType;
+            }
         } else {
             var serializerInt = findSerializerType(env.getTypeUtils(), serializerImpl);
             if (check(env, element, preference, serializerInt, deserializedType)) {

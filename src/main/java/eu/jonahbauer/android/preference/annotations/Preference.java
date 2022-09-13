@@ -35,9 +35,10 @@ public @interface Preference {
     String name();
 
     /**
-     * The type of the preference. Must be one of {@code byte.class}, {@code char.class}, {@code short.class},
-     * {@code int.class}, {@code long.class}, {@code float.class}, {@code double.class}, {@code boolean.class}
-     * {@code String.class} or {@code void.class}.
+     * The type of the preference. If no {@link #serializer()} is provided this must be one of {@code byte.class},
+     * {@code char.class}, {@code short.class}, {@code int.class}, {@code long.class}, {@code float.class},
+     * {@code double.class}, {@code boolean.class}, {@code String.class}, {@code void.class}
+     * or any subtype of {@code Enum.class}, otherwise this must match the source type of the serializer.
      */
     Class<?> type();
 
@@ -46,7 +47,7 @@ public @interface Preference {
      * <ul>
      *     <li>{@code false} for {@code boolean} preferences,</li>
      *     <li>{@code 0} for {@code byte}, {@code short}, {@code char}, {@code int}, {@code long}, {@code float} and {@code double} preferences and</li>
-     *     <li>{@code null} for {@code String} preferences</li>
+     *     <li>{@code null} for {@code String} and {@code enum} preferences</li>
      * </ul>
      * This field does not have an effect for {@code void} preferences. If the {@link #type()} is {@code String}, then
      * the default value is automatically escaped and quoted, otherwise it will be copied into the generated class

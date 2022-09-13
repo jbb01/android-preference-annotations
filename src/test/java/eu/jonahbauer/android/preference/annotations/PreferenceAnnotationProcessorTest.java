@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +39,7 @@ public class PreferenceAnnotationProcessorTest {
                 .put(R.string.preferences_general_string_pref_key, "preferences.general.string")
                 .put(R.string.preferences_general_void_pref_key, "preferences.general.void")
                 .put(R.string.preferences_general_big_int_pref_key, "preferences.general.big_int")
+                .put(R.string.preferences_general_enum_pref_key, "preferences.general.enum")
                 .build();
 
     }
@@ -87,6 +89,19 @@ public class PreferenceAnnotationProcessorTest {
 
         check(clazz, Map.of("general", List.of(
                 new Preference<>("bigIntPref", BigInteger.class, null, BigInteger.valueOf(12345), "preferences.general.big_int")
+        )));
+    }
+
+    @Test
+    public void testSuccessfulCompilationWithEnum() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        var compilation = compile("input/TestPreferencesEnum.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        check(clazz, Map.of("general", List.of(
+                new Preference<>("enumPref", StandardOpenOption.class, null, StandardOpenOption.APPEND, "preferences.general.enum")
         )));
     }
 
