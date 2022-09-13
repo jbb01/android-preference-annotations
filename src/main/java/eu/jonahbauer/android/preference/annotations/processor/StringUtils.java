@@ -13,7 +13,7 @@ public final class StringUtils {
      * {@linkplain Character#isJavaIdentifierPart(char) Java Letters or Digits}.
      * @param string the string to be checked
      */
-    static boolean isJavaIdentifier(String string) {
+    public static boolean isJavaIdentifier(String string) {
         return IDENTIFIER.matcher(string).matches();
     }
 
@@ -22,11 +22,11 @@ public final class StringUtils {
      * {@linkplain #isJavaIdentifier(String) identifiers}.
      * @param string the string to be checked
      */
-    static boolean isFQCN(String string) {
+    public static boolean isFQCN(String string) {
         return FQCN.matcher(string).matches();
     }
 
-    static String getMethodName(String preferenceName) {
+    public static String getMethodName(String preferenceName) {
         int index;
         while ((index = preferenceName.indexOf('_')) != -1) {
             if (index == preferenceName.length() - 1) preferenceName = preferenceName.substring(0, index);
@@ -35,20 +35,5 @@ public final class StringUtils {
                     + preferenceName.substring(index + 2);
         }
         return preferenceName;
-    }
-
-    /**
-     * Escapes the given string for use in a String literal in Java source code. Note that quotes are not added
-     * automatically.
-     */
-    static String escape(String string) {
-        return string.replace("\\", "\\\\")
-                     .replace("\t", "\\t")
-                     .replace("\b", "\\b")
-                     .replace("\n", "\\n")
-                     .replace("\r", "\\r")
-                     .replace("\f", "\\f")
-                     .replace("'", "\\'")
-                     .replace("\"", "\\\"");
     }
 }

@@ -94,14 +94,14 @@ public class PreferenceAnnotationProcessorTest {
     public void testIncompatibleSerializer() {
         var compilation = compile("input/TestPreferencesIncompatibleSerializer.java");
         assertThat(compilation).failed();
-        assertThat(compilation).hadErrorContaining("Incompatible serializer eu.jonahbauer.android.preference.annotations.sources.TestPreferencesIncompatibleSerializer.VoidSerializer for preference big_int_pref");
+        assertThat(compilation).hadErrorContaining("Incompatible serializer eu.jonahbauer.android.preference.annotations.serializer.Serializer<java.lang.Void,java.lang.String> for type java.math.BigInteger of preference big_int_pref");
     }
 
     @Test
     public void testUnsupportedSerializer() {
         var compilation = compile("input/TestPreferencesUnsupportedSerializer.java");
         assertThat(compilation).failed();
-        assertThat(compilation).hadErrorContaining("Unsupported serializer target type: java.lang.Object");
+        assertThat(compilation).hadErrorContaining("Unsupported preference type: java.lang.Object");
     }
 
     @Test

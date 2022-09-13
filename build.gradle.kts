@@ -17,6 +17,8 @@ repositories {
 
 dependencies {
     implementation("com.squareup:javapoet:1.13.0")
+    implementation("org.projectlombok:lombok:1.18.24")
+    annotationProcessor("org.projectlombok:lombok:1.18.24")
 
     testImplementation("com.google.testing.compile:compile-testing:0.19")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
