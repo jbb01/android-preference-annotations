@@ -29,6 +29,7 @@ public class PreferenceAnnotationProcessorTest {
     public void setUp() {
         sharedPreferences = new InMemorySharedPreferences();
         resources = InMemoryResources.builder()
+                .put(R.string.preferences_general_boolean_pref_key, "preferences.general.boolean")
                 .put(R.string.preferences_general_byte_pref_key, "preferences.general.byte")
                 .put(R.string.preferences_general_short_pref_key, "preferences.general.short")
                 .put(R.string.preferences_general_char_pref_key, "preferences.general.char")
@@ -45,7 +46,7 @@ public class PreferenceAnnotationProcessorTest {
     }
 
     @Test
-    public void testSuccessfulCompilation() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testSuccessfulCompilation() throws Exception {
         var compilation = compile("input/TestPreferences.java");
         assertThat(compilation).succeededWithoutWarnings();
 
@@ -53,6 +54,7 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
         
         check(clazz, Map.of("general", List.of(
+                new Preference<>("booleanPref", boolean.class, false, true, "preferences.general.boolean"),
                 new Preference<>("bytePref", byte.class, (byte) 0, (byte) 16, "preferences.general.byte"),
                 new Preference<>("shortPref", short.class, (short) 0, (short) 16, "preferences.general.short"),
                 new Preference<>("charPref", char.class, (char) 0, (char) 16, "preferences.general.char"),
@@ -66,7 +68,7 @@ public class PreferenceAnnotationProcessorTest {
     }
 
     @Test
-    public void testSuccessfulCompilationWithDefaultValues() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testSuccessfulCompilationWithDefaultValues() throws Exception {
         var compilation = compile("input/TestPreferencesDefaultValue.java");
         assertThat(compilation).succeededWithoutWarnings();
 
@@ -80,7 +82,7 @@ public class PreferenceAnnotationProcessorTest {
     }
 
     @Test
-    public void testSuccessfulCompilationWithSerializer() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testSuccessfulCompilationWithSerializer() throws Exception {
         var compilation = compile("input/TestPreferencesSerializer.java");
         assertThat(compilation).succeededWithoutWarnings();
 
@@ -93,7 +95,7 @@ public class PreferenceAnnotationProcessorTest {
     }
 
     @Test
-    public void testSuccessfulCompilationWithEnum() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testSuccessfulCompilationWithEnum() throws Exception {
         var compilation = compile("input/TestPreferencesEnum.java");
         assertThat(compilation).succeededWithoutWarnings();
 

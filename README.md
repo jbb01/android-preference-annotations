@@ -33,6 +33,7 @@ and define your preferences therein:
 ```
 @Preferences(name = "org.example.AppPreferences$Generated", r = R.class, value = {
     @PreferenceGroup(name = "general", prefix = "preferences_general_", suffix = "_key", value = {
+        @Preference(name = "boolean_pref", type = boolean.class),
         @Preference(name = "byte_pref", type = byte.class),
         @Preference(name = "short_pref", type = short.class),
         @Preference(name = "char_pref", type = char.class),
@@ -70,9 +71,9 @@ public void onCreate() {
 }
 ```
 
-By default, `byte`, `short`, `char`, `int`, `long`, `float`, `double`, `String`, `void` and enums are supported.
-Other types may be used by specifying a custom serializer that will convert between the preference type and one
-of the natively supported types (except `void` and `enum`).
+By default, `boolean`, `byte`, `short`, `char`, `int`, `long`, `float`, `double`, `String`, `void` and enums are
+supported. Other types may be used by specifying a custom serializer that will convert between the preference type and 
+one of the natively supported types (except `void` and `enum`).
 
 ## issues
 Find a bug or want to request a new feature? Please let us know by submitting an issue.

@@ -7,6 +7,7 @@ import eu.jonahbauer.android.preference.annotations.R;
 
 @Preferences(name = "eu.jonahbauer.android.preference.annotations.generated.TestPreferences", r = R.class, makeFile = true, value = {
         @PreferenceGroup(name = "general", prefix = "preferences_general_", suffix = "_key", value = {
+                @Preference(name = "boolean_pref", type = boolean.class, description = "a boolean preference"),
                 @Preference(name = "byte_pref", type = byte.class, description = "a byte preference"),
                 @Preference(name = "short_pref", type = short.class, description = "a short preference"),
                 @Preference(name = "char_pref", type = char.class, description = "a char preference"),

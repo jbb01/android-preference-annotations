@@ -2,6 +2,7 @@ package eu.jonahbauer.android.preference.annotations;
 
 public final class R {
     public static final class string {
+        public static int preferences_general_boolean_pref_key = -1;
         public static int preferences_general_byte_pref_key = 0;
         public static int preferences_general_short_pref_key = 1;
         public static int preferences_general_char_pref_key = 2;
