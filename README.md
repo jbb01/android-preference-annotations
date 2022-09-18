@@ -1,5 +1,6 @@
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/jbb01/android-preference-annotations/blob/main/LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/eu.jonahbauer/android-preference-annotations)](https://mvnrepository.com/artifact/eu.jonahbauer/android-preference-annotations)
+[![javadoc](https://javadoc.io/badge2/eu.jonahbauer/android-preference-annotations/javadoc.svg?color=blue)](https://javadoc.io/doc/eu.jonahbauer/android-preference-annotations)
 [![Java CI with Gradle](https://img.shields.io/github/workflow/status/jbb01/android-preference-annotations/Java%20CI%20with%20Gradle)](https://github.com/jbb01/android-preference-annotations/actions/workflows/gradle.yml)
 
 # android-preference-annotations
