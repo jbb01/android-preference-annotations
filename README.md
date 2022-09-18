@@ -30,7 +30,7 @@ and a java version of at least 11.
 To make use of this annotation processor simply annotate a class with the `@Preferences` annotation
 and define your preferences therein:
 
-```
+```java
 @Preferences(name = "org.example.AppPreferences$Generated", r = R.class, value = {
     @PreferenceGroup(name = "general", prefix = "preferences_general_", suffix = "_key", value = {
         @Preference(name = "boolean_pref", type = boolean.class),
@@ -42,10 +42,10 @@ and define your preferences therein:
         @Preference(name = "float_pref", type = float.class),
         @Preference(name = "double_pref", type = double.class),
         @Preference(name = "string_pref", type = String.class),
-        @Preference(name = "void_pref, type = void.class")
-    }
-}
-public final AppPreferences extends AppPreferences$Generated {}
+        @Preference(name = "void_pref", type = void.class)
+    })
+})
+public final class AppPreferences extends AppPreferences$Generated {}
  ```
 
 This will generate a class `org.example.AppPreferences$Generated` which contains accessors
