@@ -12,6 +12,7 @@ import eu.jonahbauer.android.preference.annotations.util.InMemorySharedPreferenc
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.nio.file.StandardOpenOption;
@@ -42,6 +43,7 @@ public class PreferenceAnnotationProcessorTest {
                 .put(R.string.preferences_general_void_pref_key, "preferences.general.void")
                 .put(R.string.preferences_general_big_int_pref_key, "preferences.general.big_int")
                 .put(R.string.preferences_general_enum_pref_key, "preferences.general.enum")
+                .put(R.string.preferences_general_object_pref_key, "preferences.general.object")
                 .build();
 
     }
@@ -131,6 +133,39 @@ public class PreferenceAnnotationProcessorTest {
     }
 
     @Test
+    public void testSuccessfulCompilationWithGenericSerializer() throws Exception {
+        var compilation = compile("input/TestPreferenceGenericSerializer.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        check(clazz, Map.of("general", List.of(
+                new Preference<>("intPref", int.class, 0, 10, "preferences.general.int"),
+                new Preference<>("floatPref", float.class, 0f, 10f, "preferences.general.float")
+        )));
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void testSuccessfulCompilationWithJsonSerializer() throws Exception {
+        var compilation = compile("input/TestPreferenceJsonSerializer.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        var beanClazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.sources.TestPreferenceJsonSerializer$Bean");
+        var bean = beanClazz.getConstructor().newInstance();
+        beanClazz.getMethod("setFoo", String.class).invoke(bean, "Foo");
+        beanClazz.getMethod("setBar", String.class).invoke(bean, "Bar");
+
+        check(clazz, Map.of("general", List.of(
+                new Preference<>("objectPref", (Class) beanClazz, null, bean, "preferences.general.object")
+        )));
+    }
+
+    @Test
     public void testIncompatibleSerializer() {
         var compilation = compile("input/TestPreferencesIncompatibleSerializer.java");
         assertThat(compilation).failed();
@@ -165,11 +200,36 @@ public class PreferenceAnnotationProcessorTest {
         assertThat(compilation).hadErrorContaining("Illegal preference group prefix: 1preferences_general_");
     }
 
+    @Test
+    public void testInvalidSerializerTypeBound() {
+        var compilation = compile("input/TestPreferenceInvalidSerializerTypeBound.java");
+        compilation.errors().forEach(System.out::println);
+        assertThat(compilation).failed();
+    }
+
+    @SuppressWarnings("deprecation")
     private static Compilation compile(String file) {
-        return Compiler.javac()
+        var compilation = Compiler.javac()
                 .withProcessors(new PreferenceProcessor())
+                .withClasspathFrom(PreferenceAnnotationProcessorTest.class.getClassLoader())
                 .withOptions("--release", "11")
                 .compile(JavaFileObjects.forResource(file));
+        if (compilation.status() == Compilation.Status.SUCCESS) {
+            print(compilation);
+        }
+        return compilation;
+    }
+
+    private static void print(Compilation compilation) {
+        for (var source : compilation.generatedSourceFiles()) {
+            System.out.println(source.getName());
+            System.out.println();
+            try {
+                System.out.println(source.getCharContent(true));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private void check(Class<?> clazz,  Map<String, List<Preference<?>>> groups) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {

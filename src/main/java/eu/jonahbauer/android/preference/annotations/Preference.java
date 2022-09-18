@@ -52,6 +52,8 @@ public @interface Preference {
      * This field does not have an effect for {@code void} preferences. If the {@link #type()} is {@code String}, then
      * the default value is automatically escaped and quoted, otherwise it will be copied into the generated class
      * source code as is.
+     * If a {@link #serializer()} is used, the default value must be provided in serialized form, i.e. it must be
+     * a valid argument to the serializers {@link Serializer#deserialize(Object)} method.
      * @implNote it is possibly to inject code into the generated classes by misusing this field. Just don't.
      */
     String defaultValue() default NO_DEFAULT_VALUE;
@@ -63,6 +65,10 @@ public @interface Preference {
 
     /**
      * A serializer used for converting the preference type to a type supported by {@code SharedPreferences} and back.
+     * The class specified here must either have a default constructor or a constructor taking exactly one argument
+     * of type {@link Class}. If both constructors are present, it is not defined which one will be used.
+     * Also, the serializer class must have at most one type argument. If a type argument is present, the
+     * {@linkplain #type() preference type} will be used.
      */
     Class<? extends Serializer> serializer() default Serializer.class;
 }

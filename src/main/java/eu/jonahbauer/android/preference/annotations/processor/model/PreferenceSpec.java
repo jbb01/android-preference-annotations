@@ -3,16 +3,11 @@ package eu.jonahbauer.android.preference.annotations.processor.model;
 import com.squareup.javapoet.*;
 import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.processor.StringUtils;
-import eu.jonahbauer.android.preference.annotations.processor.TypeUtils;
-import eu.jonahbauer.android.preference.annotations.serializer.EnumSerializer;
-import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
 import lombok.Value;
 
 import javax.lang.model.element.Modifier;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 import java.util.Map;
 
 @Value
@@ -55,52 +50,23 @@ public class PreferenceSpec {
     public static PreferenceSpec create(Context context, int index, Preference preference) {
         if (!check(context, preference)) return null;
 
-        var deserializedType = TypeUtils.mirror(preference, Preference::type);
-        var serializedType = (TypeMirror) null;
-        var serializer = (FieldSpec) null;
+        var serializerSpec = new SerializerSpec(context, index, preference);
 
-        var serializerImpl = TypeUtils.mirror(preference, Preference::serializer);
-        if (TypeUtils.isSame(Serializer.class, serializerImpl)) {
-            if (TypeUtils.isEnum(context, deserializedType)) {
-                serializedType = context.getElementUtils().getTypeElement("java.lang.String").asType();
-                serializer = FieldSpec.builder(ParameterizedTypeName.get(ClassName.get(EnumSerializer.class), TypeName.get(deserializedType)), "serializer$" + index, Modifier.PRIVATE, Modifier.FINAL)
-                        .initializer("new $T<>($T.class)", TypeName.get(EnumSerializer.class), deserializedType)
-                        .build();
-            } else {
-                serializedType = deserializedType;
-            }
-        } else {
-            var serializerInt = findSerializerType(context.getTypeUtils(), serializerImpl);
-            if (check(context, preference, serializerInt, deserializedType)) {
-                assert serializerInt != null;
-                serializedType = TypeUtils.tryUnbox(context, serializerInt.getTypeArguments().get(1));
-                serializer = FieldSpec.builder(TypeName.get(serializerImpl), "serializer$" + index, Modifier.PRIVATE, Modifier.FINAL)
-                        .initializer("new $T()", serializerImpl)
-                        .build();
-            } else {
-                return null;
-            }
-        }
-
-        if (!checkType(serializedType)) {
-            context.error("Unsupported preference type: %s", serializedType);
+        if (!checkType(serializerSpec.getSerializedType())) {
+            context.error("Unsupported preference type: %s", serializerSpec.getSerializedType());
             return null;
         }
 
         var key = FieldSpec.builder(String.class, "key$" + index, Modifier.PRIVATE, Modifier.FINAL).build();
-        return new PreferenceSpec(context, preference, key, serializer, serializedType, deserializedType);
+        return new PreferenceSpec(context, preference, key, serializerSpec);
     }
 
-    public PreferenceSpec(
-            Context context, Preference preference,
-            FieldSpec key, FieldSpec serializer,
-            TypeMirror serializedType, TypeMirror deserializedType
-    ) {
+    public PreferenceSpec(Context context, Preference preference, FieldSpec key, SerializerSpec serializerSpec) {
         this.name = StringUtils.getMethodName(preference.name());
         this.key = key;
-        this.serializer = serializer;
-        this.serializedType = serializedType;
-        this.deserializedType = deserializedType;
+        this.serializer = serializerSpec.getSerializer();
+        this.serializedType = serializerSpec.getSerializedType();
+        this.deserializedType = serializerSpec.getDeserializedType();
 
         var sharedPreferences = context.getSharedPreferences();
         var fluent = context.isFluent();
@@ -145,21 +111,6 @@ public class PreferenceSpec {
         return true;
     }
 
-    private static boolean check(Context context, Preference preference, DeclaredType serializer, TypeMirror deserializedType) {
-        if (serializer == null) {
-            context.error("No serializer for preference %s", preference.name());
-            return false;
-        } else if (serializer.getTypeArguments().size() != 2) {
-            context.error("Unable to identify type arguments of serializer %s for preference %s", serializer, preference.name());
-            return false;
-        } else if (!context.getTypeUtils().isSubtype(deserializedType, serializer.getTypeArguments().get(0))) {
-            context.error("Incompatible serializer %s for type %s of preference %s", serializer, deserializedType, preference.name());
-            return false;
-        } else {
-            return true;
-        }
-    }
-
     private static boolean checkType(TypeMirror type) {
         switch (type.getKind()) {
             case BOOLEAN:
@@ -188,23 +139,6 @@ public class PreferenceSpec {
             case ARRAY: case NULL: case DECLARED: case VOID: return null;
             default: throw new RuntimeException();
         }
-    }
-
-    private static DeclaredType findSerializerType(Types typeUtils, TypeMirror type) {
-        if (Serializer.class.getName().equals(typeUtils.erasure(type).toString())) {
-            return (DeclaredType) type;
-        }
-
-        for (TypeMirror supertype : typeUtils.directSupertypes(type)) {
-            if (Object.class.toString().equals(supertype.toString())) continue;
-
-            var serializerType = findSerializerType(typeUtils, supertype);
-            if (serializerType != null) {
-                return serializerType;
-            }
-        }
-
-        return null;
     }
 
     private static void addJavadoc(MethodSpec.Builder method, String description, TypeMirror type, Object defaultValue) {

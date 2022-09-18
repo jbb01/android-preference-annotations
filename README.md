@@ -97,7 +97,40 @@ AppPreferences.general.keys.intPref
 ### types
 By default, `boolean`, `byte`, `short`, `char`, `int`, `long`, `float`, `double`, `String`, `void` and enums are
 supported. Other types may be used by specifying a custom serializer that will convert between the preference type and 
-one of the natively supported types (except `void` and `enum`).
+one of the natively supported types (except `void` and `enum`):
+
+```
+@Preference(name = "bean_pref", type = Bean.class, serializer = JsonBeanSerializer.class)
+```
+```java
+@Data
+public class Bean {
+    private String foo;
+    private String bar;
+}
+```
+```java
+public class JsonBeanSerializer<T> implements Serializer<T, String> {
+    private final Class<? extends T> clazz;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    public JsonBeanSerializer(Class<? extends T> clazz) {
+        this.clazz = clazz;
+    }
+    
+    @SneakyThrows
+    public T deserialize(String value) {
+        if (value == null) return null;
+        return mapper.readValue(value, clazz);
+    }
+    
+    @SneakyThrows
+    public String serialize(T value) {
+        if (value == null) return null;
+        return mapper.writeValueAsString(value);
+    }
+}
+```
 
 ## issues
 Find a bug or want to request a new feature? Please let us know by submitting an issue.
