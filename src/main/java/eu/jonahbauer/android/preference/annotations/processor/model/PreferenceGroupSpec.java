@@ -45,10 +45,10 @@ public class PreferenceGroupSpec {
                 .build()
         );
 
-        PreferenceKeysSpec.create(name, preferenceSpecs).apply(type);
+        PreferenceKeysSpec.create(context, name, preferenceSpecs).apply(type);
 
         var field = field(index, name);
-        var accessor = accessor(group.name(), field, context.getSharedPreferences());
+        var accessor = accessor(context, group.name(), field, context.getSharedPreferences());
         return new PreferenceGroupSpec(name, field, accessor, type.build());
     }
 
@@ -75,8 +75,8 @@ public class PreferenceGroupSpec {
         return FieldSpec.builder(name, "group$" + index, Modifier.PRIVATE, Modifier.STATIC).build();
     }
 
-    private static MethodSpec accessor(String name, FieldSpec field, FieldSpec sharedPreferences) {
-        return MethodSpec.methodBuilder(name)
+    private static MethodSpec accessor(Context context, String name, FieldSpec field, FieldSpec sharedPreferences) {
+        return MethodSpec.methodBuilder(StringUtils.getGetterName(name, field.type, context.isFluent()))
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(field.type)
                 .addCode(CodeBlock.builder()

@@ -19,6 +19,7 @@ public final class Context {
     private TypeName r;
     private ClassName root;
     private FieldSpec sharedPreferences;
+    private boolean fluent;
 
     public void error(String message, Object...args) {
         env.getMessager().printMessage(Diagnostic.Kind.ERROR, String.format(message, args), element);

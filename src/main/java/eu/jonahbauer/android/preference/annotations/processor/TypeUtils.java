@@ -4,7 +4,6 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import eu.jonahbauer.android.preference.annotations.processor.model.Context;
 
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
@@ -41,8 +40,8 @@ public final class TypeUtils {
         return false;
     }
 
-    public static MethodSpec getter(String name, FieldSpec spec) {
-        return MethodSpec.methodBuilder(name)
+    public static MethodSpec getter(String name, FieldSpec spec, boolean fluent) {
+        return MethodSpec.methodBuilder(StringUtils.getGetterName(name, spec.type, fluent))
                 .addModifiers(Modifier.PUBLIC)
                 .returns(spec.type)
                 .addStatement("return $N", spec)

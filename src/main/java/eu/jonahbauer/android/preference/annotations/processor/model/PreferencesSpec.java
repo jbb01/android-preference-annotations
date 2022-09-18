@@ -21,6 +21,8 @@ public class PreferencesSpec {
 
         if (!check(context, root)) return null;
 
+        context.setFluent(root.fluent());
+
         var name = name(root);
         context.setRoot(name);
 

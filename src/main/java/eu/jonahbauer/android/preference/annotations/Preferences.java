@@ -114,4 +114,11 @@ public @interface Preferences {
      * Either way the generated class will throw an exception on instantiation.
      */
     boolean makeFile() default false;
+
+    /**
+     * Whether the generated code should use fluent accessors or stick to the
+     * traditional getter/setter prefixes. When interoperability with kotlin
+     * code is a concern this should probably be set to {@code false}.
+     */
+    boolean fluent() default true;
 }

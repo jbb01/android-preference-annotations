@@ -16,7 +16,7 @@ public class PreferenceKeysSpec {
     MethodSpec accessor;
     TypeSpec type;
 
-    public static PreferenceKeysSpec create(ClassName parent, List<PreferenceSpec> preferences) {
+    public static PreferenceKeysSpec create(Context context, ClassName parent, List<PreferenceSpec> preferences) {
         var name = parent.nestedClass("Keys");
 
         var type = TypeSpec.classBuilder(name)
@@ -24,14 +24,14 @@ public class PreferenceKeysSpec {
                 .addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE).build());
 
         for (PreferenceSpec preference : preferences) {
-            type.addMethod(TypeUtils.getter(preference.getName(), preference.getKey()));
+            type.addMethod(TypeUtils.getter(preference.getName(), preference.getKey(), context.isFluent()));
         }
 
         var field = FieldSpec.builder(name, "keys", Modifier.PRIVATE, Modifier.FINAL)
                 .initializer("new $T()", name)
                 .build();
 
-        var accessor = TypeUtils.getter("keys", field);
+        var accessor = TypeUtils.getter("keys", field, context.isFluent());
 
         return new PreferenceKeysSpec(field, accessor, type.build());
     }

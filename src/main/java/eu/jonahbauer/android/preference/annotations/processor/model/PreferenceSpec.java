@@ -88,35 +88,30 @@ public class PreferenceSpec {
         }
 
         var key = FieldSpec.builder(String.class, "key$" + index, Modifier.PRIVATE, Modifier.FINAL).build();
-        return new PreferenceSpec(
-                StringUtils.getMethodName(preference.name()),
-                context.getSharedPreferences(),
-                key,
-                serializer,
-                serializedType,
-                deserializedType,
-                getDefaultValue(preference, serializedType),
-                preference.description()
-        );
+        return new PreferenceSpec(context, preference, key, serializer, serializedType, deserializedType);
     }
 
     public PreferenceSpec(
-            String name, FieldSpec sharedPreferences,
+            Context context, Preference preference,
             FieldSpec key, FieldSpec serializer,
-            TypeMirror serializedType, TypeMirror deserializedType,
-            Object defaultValue, String description
+            TypeMirror serializedType, TypeMirror deserializedType
     ) {
-        this.name = name;
+        this.name = StringUtils.getMethodName(preference.name());
         this.key = key;
         this.serializer = serializer;
         this.serializedType = serializedType;
         this.deserializedType = deserializedType;
 
+        var sharedPreferences = context.getSharedPreferences();
+        var fluent = context.isFluent();
+        var defaultValue = getDefaultValue(preference, serializedType);
+        var description = preference.description();
+
         if (serializedType.getKind() == TypeKind.VOID) {
             getter = null;
             setter = null;
         } else {
-            var getter = MethodSpec.methodBuilder(name)
+            var getter = MethodSpec.methodBuilder(StringUtils.getGetterName(name, serializedType, fluent))
                     .addModifiers(Modifier.PUBLIC)
                     .returns(TypeName.get(deserializedType))
                     .addStatement(GETTER.get(serializedType.toString()), sharedPreferences, key, defaultValue)
@@ -124,7 +119,7 @@ public class PreferenceSpec {
             addJavadoc(getter, description, serializedType, defaultValue);
             this.getter = getter.build();
 
-            var setter = MethodSpec.methodBuilder(name)
+            var setter = MethodSpec.methodBuilder(StringUtils.getSetterName(name, fluent))
                     .addModifiers(Modifier.PUBLIC)
                     .addParameter(TypeName.get(deserializedType), "value")
                     .addStatement(serializer == null ? "var serializedValue = value" : "var serializedValue = $N.serialize(value)", serializer)
