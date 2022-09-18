@@ -50,15 +50,9 @@ public final AppPreferences extends AppPreferences$Generated {}
 
 This will generate a class `org.example.AppPreferences$Generated` which contains accessors
 for all the specified preferences (except `void` preferences). Additionally, an accessor for
-the preference keys is generated:
+the preference keys is generated.
 
-```
-AppPreferences.general().intPref()        // returns the default value of 0
-AppPreferences.general().intPref(10)      // sets the preference R.string.preferences_general_int_pref_key to 10
-AppPreferences.general().intPref()        // returns the newly assigned value of 10
-AppPreferences.general().keys().intPref() // returns the string resource R.string.preferences_general_int_pref_key 
-```
-
+### initialization
 Before you can actually access any shared preferences you first have to tell the generated class which
 `SharedPreferences` to use. This can easily be done in the applications `onCreate` method:
 
@@ -71,6 +65,36 @@ public void onCreate() {
 }
 ```
 
+### access
+
+You can access the preferences from anywhere in the application without requiring a `Context`:
+
+```
+AppPreferences.general().intPref()        // returns the default value of 0
+AppPreferences.general().intPref(10)      // sets the preference R.string.preferences_general_int_pref_key to 10
+AppPreferences.general().intPref()        // returns the newly assigned value of 10
+AppPreferences.general().keys().intPref() // returns the string resource R.string.preferences_general_int_pref_key 
+```
+
+If necessary you can also disable the generation of fluent getters and setters by setting
+`fluent = false` on the `@Preferences` annotation, which will
+help with Kotlin interoperability:
+
+```
+AppPreferences.getGeneral().getIntPref()
+AppPreferences.getGeneral().setIntPref(10)
+AppPreferences.getGeneral().getKeys().getIntPref()
+```
+
+or in Kotlin
+
+```
+AppPreferences.general.intPref
+AppPreferences.general.intPref = 10
+AppPreferences.general.keys.intPref
+```
+
+### types
 By default, `boolean`, `byte`, `short`, `char`, `int`, `long`, `float`, `double`, `String`, `void` and enums are
 supported. Other types may be used by specifying a custom serializer that will convert between the preference type and 
 one of the natively supported types (except `void` and `enum`).
