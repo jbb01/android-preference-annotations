@@ -5,8 +5,6 @@ import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
 import eu.jonahbauer.android.preference.annotations.processor.StringUtils;
 import lombok.Value;
 
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import java.util.ArrayList;
 
@@ -19,23 +17,24 @@ public class PreferenceGroupSpec {
     MethodSpec accessor;
     TypeSpec type;
 
-    public static PreferenceGroupSpec create(ProcessingEnvironment env, Element element, TypeName r, ClassName parent, int index, PreferenceGroup group, FieldSpec sharedPreferences) {
-        if (!check(env, element, group)) return null;
+    public static PreferenceGroupSpec create(Context context, int index, PreferenceGroup group) {
+        if (!check(context, group)) return null;
 
-        var name = parent.nestedClass(group.name());
+        var name = context.getRoot().nestedClass(group.name());
         var type = TypeSpec.classBuilder(name).addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
         var constructorCode = CodeBlock.builder();
 
         var preferences = group.value();
         var preferenceSpecs = new ArrayList<PreferenceSpec>();
         for (int i = 0; i < preferences.length; i++) {
-            var spec = PreferenceSpec.create(env, element, sharedPreferences, i, preferences[i]);
+            var spec = PreferenceSpec.create(context, i, preferences[i]);
             if (spec == null) continue;
 
             preferenceSpecs.add(spec);
             spec.apply(type);
 
-            constructorCode.addStatement("$N = resources.getString($T.string.$N)", spec.getKey(), r, group.prefix() + preferences[i].name() + group.suffix());
+            var key = group.prefix() + preferences[i].name() + group.suffix();
+            constructorCode.addStatement("$N = resources.getString($T.string.$N)", spec.getKey(), context.getR(), key);
         }
 
         // constructor
@@ -49,7 +48,7 @@ public class PreferenceGroupSpec {
         PreferenceKeysSpec.create(name, preferenceSpecs).apply(type);
 
         var field = field(index, name);
-        var accessor = accessor(group.name(), field, sharedPreferences);
+        var accessor = accessor(group.name(), field, context.getSharedPreferences());
         return new PreferenceGroupSpec(name, field, accessor, type.build());
     }
 
@@ -57,15 +56,15 @@ public class PreferenceGroupSpec {
         builder.addField(field).addMethod(accessor).addType(type);
     }
 
-    private static boolean check(ProcessingEnvironment env, Element element, PreferenceGroup group) {
+    private static boolean check(Context context, PreferenceGroup group) {
         if (!StringUtils.isJavaIdentifier(group.name())) {
-            error(env, element, "Illegal preference group name: %s", group.name());
+            context.error("Illegal preference group name: %s", group.name());
             return false;
         } else if (!group.prefix().isEmpty() && !StringUtils.isJavaIdentifier(group.prefix())) {
-            error(env, element, "Illegal preference group prefix: %s", group.prefix());
+            context.error("Illegal preference group prefix: %s", group.prefix());
             return false;
         } else if (!group.suffix().isEmpty() && !group.suffix().matches("\\p{javaJavaIdentifierPart}+")) {
-            error(env, element, "Illegal preference group suffix: %s", group.suffix());
+            context.error("Illegal preference group suffix: %s", group.suffix());
             return false;
         }
 

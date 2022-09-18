@@ -8,7 +8,6 @@ import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import javax.tools.Diagnostic;
 import java.io.IOException;
 import java.util.Set;
 
@@ -40,9 +39,4 @@ public final class PreferenceProcessor extends AbstractProcessor {
             throw new RuntimeException(e);
         }
     }
-
-    public static void error(ProcessingEnvironment env, Element element, String message, Object...args) {
-        env.getMessager().printMessage(Diagnostic.Kind.ERROR, String.format(message, args), element);
-    }
-
 }

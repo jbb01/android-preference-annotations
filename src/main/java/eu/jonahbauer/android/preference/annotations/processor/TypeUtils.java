@@ -2,6 +2,7 @@ package eu.jonahbauer.android.preference.annotations.processor;
 
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
+import eu.jonahbauer.android.preference.annotations.processor.model.Context;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
@@ -20,9 +21,9 @@ public final class TypeUtils {
         }
     }
 
-    public static TypeMirror tryUnbox(ProcessingEnvironment processingEnv, TypeMirror type) {
+    public static TypeMirror tryUnbox(Context context, TypeMirror type) {
         try {
-            return processingEnv.getTypeUtils().unboxedType(type);
+            return context.getTypeUtils().unboxedType(type);
         } catch (IllegalArgumentException e) {
             return type;
         }
@@ -32,8 +33,8 @@ public final class TypeUtils {
         return clazz.getName().equals(type.toString());
     }
 
-    public static boolean isEnum(ProcessingEnvironment processingEnv, TypeMirror type) {
-        var utils = processingEnv.getTypeUtils();
+    public static boolean isEnum(Context context, TypeMirror type) {
+        var utils = context.getTypeUtils();
         for (TypeMirror supertype : utils.directSupertypes(type)) {
             if (isSame(Enum.class, utils.erasure(supertype))) return true;
         }

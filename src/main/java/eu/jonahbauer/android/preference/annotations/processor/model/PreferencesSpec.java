@@ -17,10 +17,15 @@ public class PreferencesSpec {
     JavaFile file;
 
     public static PreferencesSpec create(ProcessingEnvironment env, Element element, Preferences root) {
-        if (!check(env, element, root)) return null;
+        var context = new Context(env, element);
+
+        if (!check(context, root)) return null;
 
         var name = name(root);
+        context.setRoot(name);
+
         var r = TypeName.get(TypeUtils.mirror(root, Preferences::r));
+        context.setR(r);
 
         var builder = TypeSpec.classBuilder(name);
 
@@ -32,6 +37,7 @@ public class PreferencesSpec {
 
         // shared preferences
         var sharedPreferencesField = FieldSpec.builder(SHARED_PREFERENCES, "sharedPreferences", Modifier.PRIVATE, Modifier.STATIC).build();
+        context.setSharedPreferences(sharedPreferencesField);
         builder.addField(sharedPreferencesField);
 
         // init method
@@ -40,7 +46,7 @@ public class PreferencesSpec {
         // group classes, fields, accessors and init statements
         var groups = root.value();
         for (int i = 0; i < groups.length; i++) {
-            var spec = PreferenceGroupSpec.create(env, element, r, name, i, groups[i], sharedPreferencesField);
+            var spec = PreferenceGroupSpec.create(context, i, groups[i]);
             if (spec == null) continue;
 
             spec.apply(builder);
@@ -53,9 +59,9 @@ public class PreferencesSpec {
         return new PreferencesSpec(JavaFile.builder(name.packageName(), builder.build()).indent("    ").build());
     }
 
-    private static boolean check(ProcessingEnvironment env, Element element, Preferences root) {
+    private static boolean check(Context context, Preferences root) {
         if (!StringUtils.isFQCN(root.name())) {
-            error(env, element, "Illegal preference class name: %s", root.name());
+            context.error("Illegal preference class name: %s", root.name());
             return false;
         }
         return true;
