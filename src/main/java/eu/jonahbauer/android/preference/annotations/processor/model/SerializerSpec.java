@@ -9,6 +9,7 @@ import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import lombok.experimental.ExtensionMethod;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
@@ -27,10 +28,10 @@ public class SerializerSpec {
 
         // no serializer
         var serializerRawType = TypeUtils.mirror(preference, Preference::serializer);
-        if (TypeUtils.isSame(Serializer.class, serializerRawType)) {
-            if (TypeUtils.isEnum(context, declaredType)) {
+        if (context.isSame(serializerRawType, Serializer.class)) {
+            if (context.isEnum(declaredType)) {
                 // use enum serializer for enum types when no serializer is specified
-                serializerRawType = TypeUtils.getType(context, EnumSerializer.class);
+                serializerRawType = context.getType(EnumSerializer.class);
             } else {
                 return new SerializerSpec(declaredType);
             }
@@ -56,8 +57,8 @@ public class SerializerSpec {
 
         if (check(context, preference, serializerInt)) {
             assert serializerInt != null;
-            serializedType = TypeUtils.tryUnbox(context, serializerInt.getTypeArguments().get(1));
-            deserializedType = TypeUtils.tryUnbox(context, serializerInt.getTypeArguments().get(0));
+            serializedType = context.tryUnbox(serializerInt.getTypeArguments().get(1));
+            deserializedType = context.tryUnbox(serializerInt.getTypeArguments().get(0));
         } else {
             return new SerializerSpec(declaredType);
         }
@@ -71,7 +72,7 @@ public class SerializerSpec {
             // build field spec
             var builder = FieldSpec.builder(serializerTypeName, "serializer$" + index, Modifier.PRIVATE, Modifier.FINAL);
             if (constructor) {
-                builder.initializer("new $T($T.class)", serializerTypeName, TypeUtils.tryBox(context, declaredType));
+                builder.initializer("new $T($T.class)", serializerTypeName, context.tryBox(declaredType));
             } else {
                 builder.initializer("new $T()", serializerTypeName);
             }
@@ -96,7 +97,7 @@ public class SerializerSpec {
         if (typeArguments.size() == 1) {
             // since the input was a Class<?> the type argument cannot be specified already
             // and must be a type variable which we can simply override
-            var boxedType = TypeUtils.tryBox(context, declaredType);
+            var boxedType = context.tryBox(declaredType);
             return context.getTypeUtils().getDeclaredType((TypeElement) serializer.asElement(), boxedType);
         } else {
             return serializer;
@@ -112,12 +113,12 @@ public class SerializerSpec {
      */
     private static DeclaredType findSerializerType(Context context, TypeMirror type) {
         var typeUtils = context.getTypeUtils();
-        if (Serializer.class.getName().equals(typeUtils.erasure(type).toString())) {
+        if (context.isSame(type, Serializer.class)) {
             return (DeclaredType) type;
         }
 
         for (TypeMirror supertype : typeUtils.directSupertypes(type)) {
-            if (Object.class.toString().equals(supertype.toString())) continue;
+            if (context.isSame(supertype, Object.class)) continue;
 
             var serializerType = findSerializerType(context, supertype);
             if (serializerType != null) {
@@ -167,7 +168,7 @@ public class SerializerSpec {
                 return false;
             } else if (parameters.size() == 1) {
                 var param = parameters.get(0);
-                if (TypeUtils.isSameErasure(context, Class.class, param)) {
+                if (context.isSame(param, Class.class)) {
                     return true;
                 }
             }

@@ -52,7 +52,7 @@ public class PreferenceSpec {
 
         var serializerSpec = SerializerSpec.create(context, index, preference);
 
-        if (!checkType(serializerSpec.getSerializedType())) {
+        if (!checkType(context, serializerSpec.getSerializedType())) {
             context.error("Unsupported preference type: %s", serializerSpec.getSerializedType());
             return null;
         }
@@ -111,7 +111,7 @@ public class PreferenceSpec {
         return true;
     }
 
-    private static boolean checkType(TypeMirror type) {
+    private static boolean checkType(Context context, TypeMirror type) {
         switch (type.getKind()) {
             case BOOLEAN:
             case BYTE:
@@ -124,7 +124,7 @@ public class PreferenceSpec {
             case VOID:
                 return true;
             case DECLARED:
-                return String.class.getName().equals(type.toString());
+                return context.isSame(type, String.class);
             default:
                 return false;
         }
