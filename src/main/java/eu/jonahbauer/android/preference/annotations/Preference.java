@@ -35,10 +35,36 @@ public @interface Preference {
     String name();
 
     /**
-     * The type of the preference. If no {@link #serializer()} is provided this must be one of {@code byte.class},
-     * {@code char.class}, {@code short.class}, {@code int.class}, {@code long.class}, {@code float.class},
-     * {@code double.class}, {@code boolean.class}, {@code String.class}, {@code void.class}
-     * or any subtype of {@code Enum.class}, otherwise this must match the source type of the serializer.
+     * The type of the preference.
+     * <p>
+     *     If no {@linkplain #serializer() serializer} is provided this must be one of {@code byte.class},
+     *     {@code char.class}, {@code short.class}, {@code int.class}, {@code long.class}, {@code float.class},
+     *     {@code double.class}, {@code boolean.class}, {@code String.class}, {@code void.class}
+     *     or any subtype of {@code Enum.class}.
+     * </p>
+     * <p>
+     *     If a serializer is provided the type declared here will serve as type-argument and/or constructor argument
+     *     for the serializer. The actual preference type will be the serializers source type and may differ.
+     * </p>
+     * <p>
+     *     Since {@code SharedPreferences} only support {@code int}, {@code long}, {@code float}, {@code boolean}
+     *     and {@code String} the other natively supported types must be converted into one of those types:
+     *     <ul>
+     *         <li>{@code byte}, {@code char} and {@code short} are stored as an {@code int}</li>
+     *         <li>
+     *             {@code double} is stored as a {@code long} via {@link Double#doubleToRawLongBits(double)} and
+     *             {@link Double#longBitsToDouble(long)}
+     *         </li>
+     *         <li>
+     *             {@code enum} is stored as a {@code String} via {@link Enum#name()} and
+     *             {@link Enum#valueOf(Class, String)}
+     *         </li>
+     *         <li>
+     *             {@code void} is not stored
+     *         </li>
+     *     </ul>
+     * </p>
+     * @see #serializer()
      */
     Class<?> type();
 
@@ -64,11 +90,35 @@ public @interface Preference {
     String description() default "";
 
     /**
-     * A serializer used for converting the preference type to a type supported by {@code SharedPreferences} and back.
-     * The class specified here must either have a default constructor or a constructor taking exactly one argument
-     * of type {@link Class}. If both constructors are present, it is not defined which one will be used.
-     * Also, the serializer class must have at most one type argument. If a type argument is present, the
-     * {@linkplain #type() preference type} will be used.
+     * <p>
+     *     A serializer used for converting the preference type to a type supported by {@code SharedPreferences} and back.
+     * </p>
+     * <p>
+     *     A serializer must have at most one type argument {@code T} - the
+     *     {@linkplain #type() declared preference type} - and must either have a default constructor or a
+     *     constructor taking exactly one argument of type {@link Class Class&lt;? extends T&gt;}. If both constructors
+     *     are present it is not defined which one will be used. Furthermore the serializers target type must be a
+     *     primitive wrapper or {@code String}. If the target type is a primitive wrapper the argument of
+     *     {@link Serializer#deserialize(Object)} is guaranteed to be non-{@code null} and the return value of
+     *     {@link Serializer#serialize(Object)} must be non-{@code null}.
+     * </p>
+     * <p>
+     *     The actual preference type will be the serializers source type. Therefore a preference
+     *     <pre>{@code
+     *     @Preference(name = "list", type = Foo.class, serializer = ListSerializer.class)
+     *     }</pre>
+     *     with a serializer
+     *     <pre>{@code
+     *     public class ListSerializer<T> implements Serializer<List<T>, String> {
+     *         public ListSerializer(Class<? extends T> clazz) {
+     *         }
+     *     }
+     *     }</pre>
+     *     would result in a preference of type {@code List<Foo>}. The serializer would be instantiated with
+     *     <pre>{@code
+     *     new ListSerializer<>(Foo.class)
+     *     }</pre>
+     * </p>
      */
     Class<? extends Serializer> serializer() default Serializer.class;
 }

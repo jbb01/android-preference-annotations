@@ -10,7 +10,7 @@ public final class EnumSerializer<T extends Enum<T>> implements Serializer<T, St
     @Override
     public String serialize(T value) {
         if (value == null) return null;
-        return value.toString();
+        return value.name();
     }
 
     @Override

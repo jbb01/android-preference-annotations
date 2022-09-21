@@ -44,6 +44,7 @@ public class PreferenceAnnotationProcessorTest {
                 .put(R.string.preferences_general_big_int_pref_key, "preferences.general.big_int")
                 .put(R.string.preferences_general_enum_pref_key, "preferences.general.enum")
                 .put(R.string.preferences_general_object_pref_key, "preferences.general.object")
+                .put(R.string.preferences_general_list_pref_key, "preferences.general.list")
                 .build();
 
     }
@@ -147,6 +148,19 @@ public class PreferenceAnnotationProcessorTest {
     }
 
     @Test
+    public void testSuccessfulCompilationWithListSerializer() throws Exception {
+        var compilation = compile("input/TestPreferenceListSerializer.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        check(clazz, Map.of("general", List.of(
+                new Preference<>("listPref", List.class, null, List.of(1, 2, 3), "preferences.general.list")
+        )));
+    }
+
+    @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void testSuccessfulCompilationWithJsonSerializer() throws Exception {
         var compilation = compile("input/TestPreferenceJsonSerializer.java");
@@ -163,13 +177,6 @@ public class PreferenceAnnotationProcessorTest {
         check(clazz, Map.of("general", List.of(
                 new Preference<>("objectPref", (Class) beanClazz, null, bean, "preferences.general.object")
         )));
-    }
-
-    @Test
-    public void testIncompatibleSerializer() {
-        var compilation = compile("input/TestPreferencesIncompatibleSerializer.java");
-        assertThat(compilation).failed();
-        assertThat(compilation).hadErrorContaining("Incompatible serializer eu.jonahbauer.android.preference.annotations.serializer.Serializer<java.lang.Void,java.lang.String> for type java.math.BigInteger of preference big_int_pref");
     }
 
     @Test

@@ -6,6 +6,8 @@ import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.processor.TypeUtils;
 import eu.jonahbauer.android.preference.annotations.serializer.EnumSerializer;
 import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import javax.lang.model.element.*;
@@ -14,63 +16,71 @@ import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 
 @Value
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SerializerSpec {
     TypeMirror deserializedType;
     TypeMirror serializedType;
     FieldSpec serializer;
 
-    public SerializerSpec(Context context, int index, Preference preference) {
-        deserializedType = TypeUtils.mirror(preference, Preference::type);
+    public static SerializerSpec create(Context context, int index, Preference preference) {
+        var declaredType = TypeUtils.mirror(preference, Preference::type);
 
+        // no serializer
         var serializerRawType = TypeUtils.mirror(preference, Preference::serializer);
         if (TypeUtils.isSame(Serializer.class, serializerRawType)) {
-            if (TypeUtils.isEnum(context, deserializedType)) {
+            if (TypeUtils.isEnum(context, declaredType)) {
+                // use enum serializer for enum types when no serializer is specified
                 serializerRawType = TypeUtils.getType(context, EnumSerializer.class);
             } else {
-                serializedType = deserializedType;
-                serializer = null;
-                return;
+                return new SerializerSpec(declaredType);
             }
         }
 
-        // handle serializers
         if (serializerRawType == null) {
+            // strang things did happen here
             context.error("No serializer for preference %s", preference.name());
-            serializer = null;
-            serializedType = deserializedType;
-            return;
+            return new SerializerSpec(declaredType);
         } else if (!(serializerRawType instanceof DeclaredType)) {
+            // strang things did happen here
             context.error("Invalid serializer type %s", serializerRawType);
-            serializer = null;
-            serializedType = deserializedType;
-            return;
+            return new SerializerSpec(declaredType);
         }
 
-        var serializerType = withTypeArguments(context, (DeclaredType) serializerRawType);
+        // add type arguments to serializer when necessary
+        var serializerType = withTypeArguments(context, (DeclaredType) serializerRawType, declaredType);
         var serializerTypeName = TypeName.get(serializerType);
+        // find serializer interface in type hierarchy
         var serializerInt = findSerializerType(context, serializerType);
 
-        if (check(context, preference, serializerInt, deserializedType)) {
+        TypeMirror serializedType, deserializedType;
+
+        if (check(context, preference, serializerInt)) {
             assert serializerInt != null;
             serializedType = TypeUtils.tryUnbox(context, serializerInt.getTypeArguments().get(1));
+            deserializedType = TypeUtils.tryUnbox(context, serializerInt.getTypeArguments().get(0));
         } else {
-            serializer = null;
-            serializedType = deserializedType;
-            return;
+            return new SerializerSpec(declaredType);
         }
 
+        // find constructor
         var constructor = hasClassConstructor(context, serializerType);
         if (constructor == null) {
-            serializer = null;
+            context.error("Could not find a suitable constructor in serializer class " + serializerType + ".");
+            return new SerializerSpec(declaredType);
         } else {
+            // build field spec
             var builder = FieldSpec.builder(serializerTypeName, "serializer$" + index, Modifier.PRIVATE, Modifier.FINAL);
             if (constructor) {
-                builder.initializer("new $T($T.class)", serializerTypeName, TypeUtils.tryBox(context, deserializedType));
+                builder.initializer("new $T($T.class)", serializerTypeName, TypeUtils.tryBox(context, declaredType));
             } else {
                 builder.initializer("new $T()", serializerTypeName);
             }
-            serializer = builder.build();
+            return new SerializerSpec(deserializedType, serializedType, builder.build());
         }
+    }
+
+    private SerializerSpec(TypeMirror type) {
+        this(type, type, null);
     }
 
     /**
@@ -79,14 +89,14 @@ public class SerializerSpec {
      * @param serializer the raw declared serializer type
      * @return the declared serializer type, optionally with type arguments
      */
-    private DeclaredType withTypeArguments(Context context, DeclaredType serializer) {
+    private static DeclaredType withTypeArguments(Context context, DeclaredType serializer, TypeMirror declaredType) {
         // converting to element and back ensures that type arguments are available
         serializer = (DeclaredType) serializer.asElement().asType();
         var typeArguments = serializer.getTypeArguments();
         if (typeArguments.size() == 1) {
             // since the input was a Class<?> the type argument cannot be specified already
             // and must be a type variable which we can simply override
-            var boxedType = TypeUtils.tryBox(context, deserializedType);
+            var boxedType = TypeUtils.tryBox(context, declaredType);
             return context.getTypeUtils().getDeclaredType((TypeElement) serializer.asElement(), boxedType);
         } else {
             return serializer;
@@ -123,10 +133,9 @@ public class SerializerSpec {
      * @param context the processing context
      * @param preference the preference
      * @param serializer the {@linkplain #findSerializerType(Context, TypeMirror) resolved} serializer interface
-     * @param deserializedType the deserialized preference type
      * @return {@code true} iff the serializer is well-defined
      */
-    private static boolean check(Context context, Preference preference, DeclaredType serializer, TypeMirror deserializedType) {
+    private static boolean check(Context context, Preference preference, DeclaredType serializer) {
         if (serializer == null) {
             // this should not be able to happen since the serializer type must (by generics) always implement
             // the Serializer interface
@@ -134,9 +143,6 @@ public class SerializerSpec {
             return false;
         } else if (serializer.getTypeArguments().size() != 2) {
             context.error("Unable to identify type arguments of serializer %s for preference %s", serializer, preference.name());
-            return false;
-        } else if (!context.getTypeUtils().isSubtype(TypeUtils.tryBox(context, deserializedType), serializer.getTypeArguments().get(0))) {
-            context.error("Incompatible serializer %s for type %s of preference %s", serializer, deserializedType, preference.name());
             return false;
         } else {
             return true;

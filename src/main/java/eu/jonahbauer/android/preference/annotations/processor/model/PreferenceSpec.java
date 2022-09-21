@@ -50,7 +50,7 @@ public class PreferenceSpec {
     public static PreferenceSpec create(Context context, int index, Preference preference) {
         if (!check(context, preference)) return null;
 
-        var serializerSpec = new SerializerSpec(context, index, preference);
+        var serializerSpec = SerializerSpec.create(context, index, preference);
 
         if (!checkType(serializerSpec.getSerializedType())) {
             context.error("Unsupported preference type: %s", serializerSpec.getSerializedType());
