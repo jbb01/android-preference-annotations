@@ -42,7 +42,8 @@ and define your preferences therein:
         @Preference(name = "long_pref", type = long.class),
         @Preference(name = "float_pref", type = float.class),
         @Preference(name = "double_pref", type = double.class),
-        @Preference(name = "string_pref", type = String.class),
+        @Preference(name = "string_pref", type = String.class), 
+        @Preference(name = "string_set_pref", type = Set.class),
         @Preference(name = "void_pref", type = void.class)
     })
 })
@@ -72,8 +73,8 @@ You can access the preferences from anywhere in the application without requirin
 
 ```
 AppPreferences.general().intPref()        // returns the default value of 0
-AppPreferences.general().intPref(10)      // sets the preference R.string.preferences_general_int_pref_key to 10
-AppPreferences.general().intPref()        // returns the newly assigned value of 10
+AppPreferences.general().intPref(42)      // sets the preference R.string.preferences_general_int_pref_key to 42
+AppPreferences.general().intPref()        // returns the newly assigned value of 42
 AppPreferences.general().keys().intPref() // returns the string resource R.string.preferences_general_int_pref_key 
 ```
 
@@ -83,7 +84,7 @@ help with Kotlin interoperability:
 
 ```
 AppPreferences.getGeneral().getIntPref()
-AppPreferences.getGeneral().setIntPref(10)
+AppPreferences.getGeneral().setIntPref(42)
 AppPreferences.getGeneral().getKeys().getIntPref()
 ```
 
@@ -91,14 +92,34 @@ or in Kotlin
 
 ```
 AppPreferences.general.intPref
-AppPreferences.general.intPref = 10
+AppPreferences.general.intPref = 42
 AppPreferences.general.keys.intPref
 ```
 
+Furthermore, you can enable generation of `Editor` classes by setting `editor = true` on the `@Preferences` annotation:
+
+```
+AppPreferences.general().edit()
+        .intPref(42)
+        .stringPref("Hello World!")
+        .apply()
+```
+
 ### types
-By default, `boolean`, `byte`, `short`, `char`, `int`, `long`, `float`, `double`, `String`, `void` and enums are
-supported. Other types may be used by specifying a custom serializer that will convert between the preference type and 
-one of the natively supported types (except `void` and `enum`):
+By default, `boolean`, `byte`, `short`, `char`, `int`, `long`, `float`, `double`, `String`, `void`, `Set<String>` and
+enums are supported (to declare a string set preference just use `Set.class`).
+Since `SharedPreferences` don't support all of these types natively some special handling is required:
+
+| type                                                       | storage format                                                                   |
+|------------------------------------------------------------|----------------------------------------------------------------------------------|
+| `boolean`, `int`, `long`, `float`, `String`, `Set<String>` | natively supported                                                               |
+| `byte`, `short`, `char`                                    | stored as `int`                                                                  |
+| `double`                                                   | stored as `long` via `Double.longBitsToDouble` and  `Double.doubleToRawLongBits` |
+| `enum`                                                     | stored as `String` via `Enum.name` and `Enum.valueOf`                            |
+| `void`                                                     | no accessors generated                                                           |
+
+Other types may be used by specifying a custom serializer that will convert between the preference
+type and one of the supported types (except `void` and `enum`):
 
 ```
 @Preference(name = "bean_pref", type = Bean.class, serializer = JsonBeanSerializer.class)
@@ -132,6 +153,12 @@ public class JsonBeanSerializer<T> implements Serializer<T, String> {
     }
 }
 ```
+
+### encryption
+
+Since the generated class can be initialized with any `SharedPreferences` implementation, you can easily
+provide an instance of [`EncryptedSharedPreferences`](https://developer.android.com/reference/androidx/security/crypto/EncryptedSharedPreferences)
+in order to encrypt your preferences.
 
 ## issues
 Find a bug or want to request a new feature? Please let us know by submitting an issue.
