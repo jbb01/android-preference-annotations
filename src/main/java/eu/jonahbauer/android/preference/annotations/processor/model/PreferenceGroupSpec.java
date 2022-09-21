@@ -47,6 +47,10 @@ public class PreferenceGroupSpec {
 
         PreferenceKeysSpec.create(context, name, preferenceSpecs).apply(type);
 
+        if (context.isEditor()) {
+            PreferenceEditorSpec.create(context, name, preferenceSpecs).apply(type);
+        }
+
         var field = field(index, name);
         var accessor = accessor(context, group.name(), field, context.getSharedPreferences());
         return new PreferenceGroupSpec(name, field, accessor, type.build());

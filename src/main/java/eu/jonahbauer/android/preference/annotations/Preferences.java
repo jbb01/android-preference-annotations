@@ -121,4 +121,9 @@ public @interface Preferences {
      * code is a concern this should probably be set to {@code false}.
      */
     boolean fluent() default true;
+
+    /**
+     * Whether to generate an {@code Editor} class similar to {@code SharedPreferences.Editor}.
+     */
+    boolean editor() default false;
 }

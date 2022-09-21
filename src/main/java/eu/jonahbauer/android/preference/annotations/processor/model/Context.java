@@ -25,6 +25,7 @@ public final class Context {
     private ClassName root;
     private FieldSpec sharedPreferences;
     private boolean fluent;
+    private boolean editor;
 
     /**
      * Checks whether the given type and class are the same after type erasure.

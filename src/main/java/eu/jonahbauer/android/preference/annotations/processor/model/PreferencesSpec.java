@@ -2,6 +2,7 @@ package eu.jonahbauer.android.preference.annotations.processor.model;
 
 import com.squareup.javapoet.*;
 import eu.jonahbauer.android.preference.annotations.Preferences;
+import eu.jonahbauer.android.preference.annotations.processor.PreferenceProcessor;
 import eu.jonahbauer.android.preference.annotations.processor.StringUtils;
 import eu.jonahbauer.android.preference.annotations.processor.TypeUtils;
 import lombok.Value;
@@ -22,6 +23,7 @@ public class PreferencesSpec {
         if (!check(context, root)) return null;
 
         context.setFluent(root.fluent());
+        context.setEditor(root.editor());
 
         var name = name(root);
         context.setRoot(name);
@@ -57,6 +59,7 @@ public class PreferencesSpec {
         }
 
         builder.addMethod(initMethod.build());
+        builder.addMethod(clear(sharedPreferencesField));
 
         return new PreferencesSpec(JavaFile.builder(name.packageName(), builder.build()).indent("    ").build());
     }
@@ -102,5 +105,16 @@ public class PreferencesSpec {
                                  .addStatement("$N = pSharedPreferences", sharedPreferencesField)
                                  .build()
                 );
+    }
+
+    private static MethodSpec clear(FieldSpec sharedPreferencesField) {
+        return MethodSpec.methodBuilder("clear")
+                .addModifiers(Modifier.PUBLIC)
+                .beginControlFlow("if ($N == null)", sharedPreferencesField)
+                .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
+                .endControlFlow()
+                .addStatement("$N.edit().clear().apply()", sharedPreferencesField)
+                .addJavadoc("@see $T#clear()", PreferenceProcessor.SHARED_PREFERENCES_EDITOR)
+                .build();
     }
 }
