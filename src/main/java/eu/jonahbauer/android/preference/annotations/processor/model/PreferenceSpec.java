@@ -9,19 +9,21 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.Map;
+import java.util.Set;
 
 @Value
 public class PreferenceSpec {
     private static final Map<String, String> GETTER = Map.of(
-            "boolean", "boolean value = $N.getBoolean($N, $L)",
-            "byte", "byte value = (byte) $N.getInt($N, $L)",
-            "char", "char value = (char) $N.getInt($N, $L)",
-            "short", "short value = (short) $N.getInt($N, $L)",
-            "int", "int value = $N.getInt($N, $L)",
-            "long", "long value = $N.getLong($N, $L)",
-            "float", "float value = $N.getFloat($N, $L)",
-            "double", "double value = Double.longBitsToDouble($N.getLong($N, $L))",
-            "java.lang.String", "String value = $N.getString($N, $S)"
+            "boolean", "var value = $N.getBoolean($N, $L)",
+            "byte", "var value = (byte) $N.getInt($N, $L)",
+            "char", "var value = (char) $N.getInt($N, $L)",
+            "short", "var value = (short) $N.getInt($N, $L)",
+            "int", "var value = $N.getInt($N, $L)",
+            "long", "var value = $N.getLong($N, $L)",
+            "float", "var value = $N.getFloat($N, $L)",
+            "double", "var value = Double.longBitsToDouble($N.getLong($N, $L))",
+            "java.lang.String", "var value = $N.getString($N, $S)",
+            "java.util.Set<java.lang.String>", "var value = $N.getStringSet($N, $L)"
     );
 
     private static final Map<String, String> SETTER = Map.of(
@@ -33,7 +35,8 @@ public class PreferenceSpec {
             "long", "$N.edit().putLong($N, serializedValue).apply()",
             "float", "$N.edit().putFloat($N, serializedValue).apply()",
             "double", "$N.edit().putLong($N, Double.doubleToRawLongBits(serializedValue)).apply()",
-            "java.lang.String", "$N.edit().putString($N, serializedValue).apply()"
+            "java.lang.String", "$N.edit().putString($N, serializedValue).apply()",
+            "java.util.Set<java.lang.String>", "$N.edit().putStringSet($N, serializedValue).apply()"
     );
 
     String name;
@@ -124,7 +127,7 @@ public class PreferenceSpec {
             case VOID:
                 return true;
             case DECLARED:
-                return context.isSame(type, String.class);
+                return context.isSame(type, String.class) || context.isSame(type, Set.class, String.class);
             default:
                 return false;
         }

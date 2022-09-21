@@ -19,9 +19,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class PreferenceAnnotationProcessorTest {
     private SharedPreferences sharedPreferences;
@@ -45,6 +47,7 @@ public class PreferenceAnnotationProcessorTest {
                 .put(R.string.preferences_general_enum_pref_key, "preferences.general.enum")
                 .put(R.string.preferences_general_object_pref_key, "preferences.general.object")
                 .put(R.string.preferences_general_list_pref_key, "preferences.general.list")
+                .put(R.string.preferences_general_set_pref_key, "preferences.general.set")
                 .build();
 
     }
@@ -67,7 +70,8 @@ public class PreferenceAnnotationProcessorTest {
                 new Preference<>("floatPref", float.class, (float) 0, (float) 16, "preferences.general.float"),
                 new Preference<>("doublePref", double.class, (double) 0, (double) 16, "preferences.general.double"),
                 new Preference<>("stringPref", String.class, null, "Hello World!", "preferences.general.string"),
-                new Preference<>("voidPref", void.class, null, null, "preferences.general.void")
+                new Preference<>("voidPref", void.class, null, null, "preferences.general.void"),
+                new Preference<>("setPref", Set.class, null, Set.of("a", "b", "c"), "preferences.general.set")
         )));
     }
 
@@ -89,7 +93,8 @@ public class PreferenceAnnotationProcessorTest {
                 new Preference<>("floatPref", float.class, (float) 0, (float) 16, "preferences.general.float"),
                 new Preference<>("doublePref", double.class, (double) 0, (double) 16, "preferences.general.double"),
                 new Preference<>("stringPref", String.class, null, "Hello World!", "preferences.general.string"),
-                new Preference<>("voidPref", void.class, null, null, "preferences.general.void")
+                new Preference<>("voidPref", void.class, null, null, "preferences.general.void"),
+                new Preference<>("setPref", Set.class, null, Set.of("a", "b", "c"), "preferences.general.set")
         )));
     }
 
@@ -103,7 +108,8 @@ public class PreferenceAnnotationProcessorTest {
 
         check(clazz, Map.of("general", List.of(
                 new Preference<>("bytePref", byte.class, (byte) 5, (byte) 16, "preferences.general.byte"),
-                new Preference<>("stringPref", String.class, "this has to be \"quoted\" 'properly'", "Hello World!", "preferences.general.string")
+                new Preference<>("stringPref", String.class, "this has to be \"quoted\" 'properly'", "Hello World!", "preferences.general.string"),
+                new Preference<>("setPref", Set.class, Set.of("Hello", "World"), Set.of("Foo", "Bar"), "preferences.general.set")
         )));
     }
 
@@ -157,6 +163,19 @@ public class PreferenceAnnotationProcessorTest {
 
         check(clazz, Map.of("general", List.of(
                 new Preference<>("listPref", List.class, null, List.of(1, 2, 3), "preferences.general.list")
+        )));
+    }
+
+    @Test
+    public void testSuccessfulCompilationWithSetSerializer() throws Exception {
+        var compilation = compile("input/TestPreferenceSetSerializer.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        check(clazz, Map.of("general", List.of(
+                new Preference<>("setPref", Set.class, null, Set.of(1, 2, 3), "preferences.general.set")
         )));
     }
 
@@ -258,12 +277,14 @@ public class PreferenceAnnotationProcessorTest {
             var keyClass = keyObj.getClass();
 
             for (var preference : preferences) {
-                if (preference.type != void.class) {
+                if (preference.type != void.class) try {
                     var setter = groupClass.getMethod(getSetterName(preference.name, fluent), preference.type);
                     var getter = groupClass.getMethod(getGetterName(preference.name, preference.type, fluent));
                     assertEquals(preference.defaultValue, getter.invoke(groupObj), "Default value of " + group + ":" + preference.name + " should be " + preference.defaultValue);
                     setter.invoke(groupObj, preference.newValue);
                     assertEquals(preference.newValue, getter.invoke(groupObj), "Could not change value of " + group + ":" + preference.name + " to " + preference.newValue);
+                } catch (NoSuchMethodException e) {
+                    fail("Could not find accessor for preference " + preference.name + ".");
                 }
 
                 var key = keyClass.getMethod(getGetterName(preference.name, String.class, fluent));

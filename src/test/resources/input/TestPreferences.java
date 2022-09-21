@@ -5,6 +5,8 @@ import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
 import eu.jonahbauer.android.preference.annotations.Preferences;
 import eu.jonahbauer.android.preference.annotations.R;
 
+import java.util.Set;
+
 @Preferences(name = "eu.jonahbauer.android.preference.annotations.generated.TestPreferences", r = R.class, makeFile = true, value = {
         @PreferenceGroup(name = "general", prefix = "preferences_general_", suffix = "_key", value = {
                 @Preference(name = "boolean_pref", type = boolean.class, description = "a boolean preference"),
@@ -16,7 +18,8 @@ import eu.jonahbauer.android.preference.annotations.R;
                 @Preference(name = "float_pref", type = float.class, description = "a float preference"),
                 @Preference(name = "double_pref", type = double.class, description = "a double preference"),
                 @Preference(name = "string_pref", type = String.class, description = "a string preference"),
-                @Preference(name = "void_pref", type = void.class, description = "a void preference")
+                @Preference(name = "void_pref", type = void.class, description = "a void preference"),
+                @Preference(name = "set_pref", type = Set.class, description = "a string set preference")
         })
 })
 public final class TestPreferences {

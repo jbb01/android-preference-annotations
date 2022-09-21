@@ -15,6 +15,7 @@ import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
+import java.util.Set;
 
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -32,6 +33,8 @@ public class SerializerSpec {
             if (context.isEnum(declaredType)) {
                 // use enum serializer for enum types when no serializer is specified
                 serializerRawType = context.getType(EnumSerializer.class);
+            } else if (context.isSame(declaredType, Set.class)) {
+                return new SerializerSpec(context.getType(Set.class, String.class));
             } else {
                 return new SerializerSpec(declaredType);
             }

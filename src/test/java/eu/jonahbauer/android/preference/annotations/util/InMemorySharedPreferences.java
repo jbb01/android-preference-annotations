@@ -76,7 +76,7 @@ public class InMemorySharedPreferences implements SharedPreferences {
 
         @Override
         public SharedPreferences.Editor putStringSet(String key, Set<String> values) {
-            changes.put(key, values);
+            changes.put(key, Set.copyOf(values));
             return this;
         }
 
