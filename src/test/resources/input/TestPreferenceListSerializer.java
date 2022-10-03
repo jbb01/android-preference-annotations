@@ -4,7 +4,7 @@ import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
 import eu.jonahbauer.android.preference.annotations.Preferences;
 import eu.jonahbauer.android.preference.annotations.R;
-import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
+import eu.jonahbauer.android.preference.annotations.serializer.PreferenceSerializer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public final class TestPreferenceListSerializer {
     private TestPreferenceListSerializer() {}
 
-    public static class NumberListSerializer<T extends Number> implements Serializer<List<T>, String> {
+    public static class NumberListSerializer<T extends Number> implements PreferenceSerializer<List<T>, String> {
         private final Class<? extends T> clazz;
 
         public NumberListSerializer(Class<? extends T> clazz) {

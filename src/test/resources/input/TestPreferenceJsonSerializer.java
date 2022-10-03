@@ -5,7 +5,7 @@ import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
 import eu.jonahbauer.android.preference.annotations.Preferences;
 import eu.jonahbauer.android.preference.annotations.R;
-import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
+import eu.jonahbauer.android.preference.annotations.serializer.PreferenceSerializer;
 
 import java.util.Objects;
 
@@ -51,7 +51,7 @@ public final class TestPreferenceJsonSerializer {
         }
     }
 
-    public static class JsonBeanSerializer<T> implements Serializer<T, String> {
+    public static class JsonBeanSerializer<T> implements PreferenceSerializer<T, String> {
         private final Class<? extends T> clazz;
         private final ObjectMapper mapper = new ObjectMapper();
 

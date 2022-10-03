@@ -132,7 +132,7 @@ public class Bean {
 }
 ```
 ```java
-public class JsonBeanSerializer<T> implements Serializer<T, String> {
+public class JsonBeanSerializer<T> implements PreferenceSerializer<T, String> {
     private final Class<? extends T> clazz;
     private final ObjectMapper mapper = new ObjectMapper();
 

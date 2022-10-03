@@ -1,9 +1,9 @@
 package eu.jonahbauer.android.preference.annotations.serializer;
 
-public final class EnumSerializer<T extends Enum<T>> implements Serializer<T, String> {
+public final class EnumPreferenceSerializer<T extends Enum<T>> implements PreferenceSerializer<T, String> {
     private final Class<T> clazz;
 
-    public EnumSerializer(Class<T> clazz) {
+    public EnumPreferenceSerializer(Class<T> clazz) {
         this.clazz = clazz;
     }
 

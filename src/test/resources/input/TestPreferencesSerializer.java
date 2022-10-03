@@ -4,7 +4,7 @@ import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
 import eu.jonahbauer.android.preference.annotations.Preferences;
 import eu.jonahbauer.android.preference.annotations.R;
-import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
+import eu.jonahbauer.android.preference.annotations.serializer.PreferenceSerializer;
 
 import java.math.BigInteger;
 import java.util.Base64;
@@ -17,7 +17,7 @@ import java.util.Base64;
 public final class TestPreferencesSerializer {
     private TestPreferencesSerializer() {}
 
-    public static interface ToStringSerializer<T> extends Serializer<T, String> {}
+    public static interface ToStringSerializer<T> extends PreferenceSerializer<T, String> {}
 
     public static class BigIntSerializer implements ToStringSerializer<BigInteger> {
         public String serialize(BigInteger value) {

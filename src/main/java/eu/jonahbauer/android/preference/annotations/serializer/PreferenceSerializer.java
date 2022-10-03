@@ -10,7 +10,7 @@ import eu.jonahbauer.android.preference.annotations.Preference;
  * @see Preference#serializer()
  */
 @SuppressWarnings("unused")
-public interface Serializer<S, T> {
+public interface PreferenceSerializer<S, T> {
     T serialize(S value);
 
     S deserialize(T value);

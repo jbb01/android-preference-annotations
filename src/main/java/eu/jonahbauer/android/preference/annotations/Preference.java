@@ -1,6 +1,6 @@
 package eu.jonahbauer.android.preference.annotations;
 
-import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
+import eu.jonahbauer.android.preference.annotations.serializer.PreferenceSerializer;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -82,7 +82,7 @@ public @interface Preference {
      * the default value is automatically escaped and quoted, otherwise it will be copied into the generated class
      * source code as is.
      * If a {@link #serializer()} is used, the default value must be provided in serialized form, i.e. it must be
-     * a valid argument to the serializers {@link Serializer#deserialize(Object)} method.
+     * a valid argument to the serializers {@link PreferenceSerializer#deserialize(Object)} method.
      * @implNote it is possibly to inject code into the generated classes by misusing this field. Just don't.
      */
     String defaultValue() default NO_DEFAULT_VALUE;
@@ -102,8 +102,8 @@ public @interface Preference {
      *     constructor taking exactly one argument of type {@link Class Class&lt;? extends T&gt;}. If both constructors
      *     are present it is not defined which one will be used. Furthermore the serializers target type must be a
      *     primitive wrapper or {@code String}. If the target type is a primitive wrapper the argument of
-     *     {@link Serializer#deserialize(Object)} is guaranteed to be non-{@code null} and the return value of
-     *     {@link Serializer#serialize(Object)} must be non-{@code null}.
+     *     {@link PreferenceSerializer#deserialize(Object)} is guaranteed to be non-{@code null} and the return value of
+     *     {@link PreferenceSerializer#serialize(Object)} must be non-{@code null}.
      * </p>
      * <p>
      *     The actual preference type will be the serializers source type. Therefore a preference
@@ -112,7 +112,7 @@ public @interface Preference {
      *     }</pre>
      *     with a serializer
      *     <pre>{@code
-     *     public class ListSerializer<T> implements Serializer<List<T>, String> {
+     *     public class ListSerializer<T> implements PreferenceSerializer<List<T>, String> {
      *         public ListSerializer(Class<? extends T> clazz) {
      *         }
      *     }
@@ -123,5 +123,5 @@ public @interface Preference {
      *     }</pre>
      * </p>
      */
-    Class<? extends Serializer> serializer() default Serializer.class;
+    Class<? extends PreferenceSerializer> serializer() default PreferenceSerializer.class;
 }

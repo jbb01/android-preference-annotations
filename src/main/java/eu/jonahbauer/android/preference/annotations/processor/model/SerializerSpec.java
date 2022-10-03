@@ -4,12 +4,11 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
 import eu.jonahbauer.android.preference.annotations.Preference;
 import eu.jonahbauer.android.preference.annotations.processor.TypeUtils;
-import eu.jonahbauer.android.preference.annotations.serializer.EnumSerializer;
-import eu.jonahbauer.android.preference.annotations.serializer.Serializer;
+import eu.jonahbauer.android.preference.annotations.serializer.EnumPreferenceSerializer;
+import eu.jonahbauer.android.preference.annotations.serializer.PreferenceSerializer;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import lombok.experimental.ExtensionMethod;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
@@ -29,10 +28,10 @@ public class SerializerSpec {
 
         // no serializer
         var serializerRawType = TypeUtils.mirror(preference, Preference::serializer);
-        if (context.isSame(serializerRawType, Serializer.class)) {
+        if (context.isSame(serializerRawType, PreferenceSerializer.class)) {
             if (context.isEnum(declaredType)) {
                 // use enum serializer for enum types when no serializer is specified
-                serializerRawType = context.getType(EnumSerializer.class);
+                serializerRawType = context.getType(EnumPreferenceSerializer.class);
             } else if (context.isSame(declaredType, Set.class)) {
                 return new SerializerSpec(context.getType(Set.class, String.class));
             } else {
@@ -109,14 +108,14 @@ public class SerializerSpec {
 
     /**
      * Traverses the type hierarchy of the given {@code type} to find the generic type of the implemented
-     * {@link Serializer} interface.
+     * {@link PreferenceSerializer} interface.
      * @param context the processing context
-     * @param type the type of the actual {@link Serializer} implementation
-     * @return the type (with generics) of the {@link Serializer} interface or {@code null} if not found
+     * @param type the type of the actual {@link PreferenceSerializer} implementation
+     * @return the type (with generics) of the {@link PreferenceSerializer} interface or {@code null} if not found
      */
     private static DeclaredType findSerializerType(Context context, TypeMirror type) {
         var typeUtils = context.getTypeUtils();
-        if (context.isSame(type, Serializer.class)) {
+        if (context.isSame(type, PreferenceSerializer.class)) {
             return (DeclaredType) type;
         }
 
