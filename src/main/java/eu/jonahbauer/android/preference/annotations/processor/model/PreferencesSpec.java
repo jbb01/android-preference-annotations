@@ -107,7 +107,7 @@ public class PreferencesSpec {
 
     private static MethodSpec clear(FieldSpec sharedPreferencesField) {
         return MethodSpec.methodBuilder("clear")
-                .addModifiers(Modifier.PUBLIC)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .beginControlFlow("if ($N == null)", sharedPreferencesField)
                 .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
                 .endControlFlow()

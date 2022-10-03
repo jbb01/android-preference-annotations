@@ -22,10 +22,25 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PreferenceAnnotationProcessorTest {
+    public static final String PREFERENCES_GENERAL_BOOLEAN = "preferences.general.boolean";
+    public static final String PREFERENCES_GENERAL_BYTE = "preferences.general.byte";
+    public static final String PREFERENCES_GENERAL_SHORT = "preferences.general.short";
+    public static final String PREFERENCES_GENERAL_CHAR = "preferences.general.char";
+    public static final String PREFERENCES_GENERAL_INT = "preferences.general.int";
+    public static final String PREFERENCES_GENERAL_LONG = "preferences.general.long";
+    public static final String PREFERENCES_GENERAL_FLOAT = "preferences.general.float";
+    public static final String PREFERENCES_GENERAL_DOUBLE = "preferences.general.double";
+    public static final String PREFERENCES_GENERAL_STRING = "preferences.general.string";
+    public static final String PREFERENCES_GENERAL_VOID = "preferences.general.void";
+    public static final String PREFERENCES_GENERAL_BIG_INT = "preferences.general.big_int";
+    public static final String PREFERENCES_GENERAL_ENUM = "preferences.general.enum";
+    public static final String PREFERENCES_GENERAL_OBJECT = "preferences.general.object";
+    public static final String PREFERENCES_GENERAL_LIST = "preferences.general.list";
+    public static final String PREFERENCES_GENERAL_SET = "preferences.general.set";
+
     private SharedPreferences sharedPreferences;
     private Resources resources;
     
@@ -33,21 +48,21 @@ public class PreferenceAnnotationProcessorTest {
     public void setUp() {
         sharedPreferences = new InMemorySharedPreferences();
         resources = InMemoryResources.builder()
-                .put(R.string.preferences_general_boolean_pref_key, "preferences.general.boolean")
-                .put(R.string.preferences_general_byte_pref_key, "preferences.general.byte")
-                .put(R.string.preferences_general_short_pref_key, "preferences.general.short")
-                .put(R.string.preferences_general_char_pref_key, "preferences.general.char")
-                .put(R.string.preferences_general_int_pref_key, "preferences.general.int")
-                .put(R.string.preferences_general_long_pref_key, "preferences.general.long")
-                .put(R.string.preferences_general_float_pref_key, "preferences.general.float")
-                .put(R.string.preferences_general_double_pref_key, "preferences.general.double")
-                .put(R.string.preferences_general_string_pref_key, "preferences.general.string")
-                .put(R.string.preferences_general_void_pref_key, "preferences.general.void")
-                .put(R.string.preferences_general_big_int_pref_key, "preferences.general.big_int")
-                .put(R.string.preferences_general_enum_pref_key, "preferences.general.enum")
-                .put(R.string.preferences_general_object_pref_key, "preferences.general.object")
-                .put(R.string.preferences_general_list_pref_key, "preferences.general.list")
-                .put(R.string.preferences_general_set_pref_key, "preferences.general.set")
+                .put(R.string.preferences_general_boolean_pref_key, PREFERENCES_GENERAL_BOOLEAN)
+                .put(R.string.preferences_general_byte_pref_key, PREFERENCES_GENERAL_BYTE)
+                .put(R.string.preferences_general_short_pref_key, PREFERENCES_GENERAL_SHORT)
+                .put(R.string.preferences_general_char_pref_key, PREFERENCES_GENERAL_CHAR)
+                .put(R.string.preferences_general_int_pref_key, PREFERENCES_GENERAL_INT)
+                .put(R.string.preferences_general_long_pref_key, PREFERENCES_GENERAL_LONG)
+                .put(R.string.preferences_general_float_pref_key, PREFERENCES_GENERAL_FLOAT)
+                .put(R.string.preferences_general_double_pref_key, PREFERENCES_GENERAL_DOUBLE)
+                .put(R.string.preferences_general_string_pref_key, PREFERENCES_GENERAL_STRING)
+                .put(R.string.preferences_general_void_pref_key, PREFERENCES_GENERAL_VOID)
+                .put(R.string.preferences_general_big_int_pref_key, PREFERENCES_GENERAL_BIG_INT)
+                .put(R.string.preferences_general_enum_pref_key, PREFERENCES_GENERAL_ENUM)
+                .put(R.string.preferences_general_object_pref_key, PREFERENCES_GENERAL_OBJECT)
+                .put(R.string.preferences_general_list_pref_key, PREFERENCES_GENERAL_LIST)
+                .put(R.string.preferences_general_set_pref_key, PREFERENCES_GENERAL_SET)
                 .build();
 
     }
@@ -59,19 +74,19 @@ public class PreferenceAnnotationProcessorTest {
 
         var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
-        
+
         check(clazz, Map.of("general", List.of(
-                new Preference<>("booleanPref", boolean.class, false, true, "preferences.general.boolean"),
-                new Preference<>("bytePref", byte.class, (byte) 0, (byte) 16, "preferences.general.byte"),
-                new Preference<>("shortPref", short.class, (short) 0, (short) 16, "preferences.general.short"),
-                new Preference<>("charPref", char.class, (char) 0, (char) 16, "preferences.general.char"),
-                new Preference<>("intPref", int.class, 0, 16, "preferences.general.int"),
-                new Preference<>("longPref", long.class, (long) 0, (long) 16, "preferences.general.long"),
-                new Preference<>("floatPref", float.class, (float) 0, (float) 16, "preferences.general.float"),
-                new Preference<>("doublePref", double.class, (double) 0, (double) 16, "preferences.general.double"),
-                new Preference<>("stringPref", String.class, null, "Hello World!", "preferences.general.string"),
-                new Preference<>("voidPref", void.class, null, null, "preferences.general.void"),
-                new Preference<>("setPref", Set.class, null, Set.of("a", "b", "c"), "preferences.general.set")
+                new Preference<>("booleanPref", boolean.class, false, true, PREFERENCES_GENERAL_BOOLEAN),
+                new Preference<>("bytePref", byte.class, (byte) 0, (byte) 16, PREFERENCES_GENERAL_BYTE),
+                new Preference<>("shortPref", short.class, (short) 0, (short) 16, PREFERENCES_GENERAL_SHORT),
+                new Preference<>("charPref", char.class, (char) 0, (char) 16, PREFERENCES_GENERAL_CHAR),
+                new Preference<>("intPref", int.class, 0, 16, PREFERENCES_GENERAL_INT),
+                new Preference<>("longPref", long.class, (long) 0, (long) 16, PREFERENCES_GENERAL_LONG),
+                new Preference<>("floatPref", float.class, (float) 0, (float) 16, PREFERENCES_GENERAL_FLOAT),
+                new Preference<>("doublePref", double.class, (double) 0, (double) 16, PREFERENCES_GENERAL_DOUBLE),
+                new Preference<>("stringPref", String.class, null, "Hello World!", PREFERENCES_GENERAL_STRING),
+                new Preference<>("voidPref", void.class, null, null, PREFERENCES_GENERAL_VOID),
+                new Preference<>("setPref", Set.class, null, Set.of("a", "b", "c"), PREFERENCES_GENERAL_SET)
         )));
     }
 
@@ -84,17 +99,17 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
 
         check(clazz, false, Map.of("general", List.of(
-                new Preference<>("booleanPref", boolean.class, false, true, "preferences.general.boolean"),
-                new Preference<>("bytePref", byte.class, (byte) 0, (byte) 16, "preferences.general.byte"),
-                new Preference<>("shortPref", short.class, (short) 0, (short) 16, "preferences.general.short"),
-                new Preference<>("charPref", char.class, (char) 0, (char) 16, "preferences.general.char"),
-                new Preference<>("intPref", int.class, 0, 16, "preferences.general.int"),
-                new Preference<>("longPref", long.class, (long) 0, (long) 16, "preferences.general.long"),
-                new Preference<>("floatPref", float.class, (float) 0, (float) 16, "preferences.general.float"),
-                new Preference<>("doublePref", double.class, (double) 0, (double) 16, "preferences.general.double"),
-                new Preference<>("stringPref", String.class, null, "Hello World!", "preferences.general.string"),
-                new Preference<>("voidPref", void.class, null, null, "preferences.general.void"),
-                new Preference<>("setPref", Set.class, null, Set.of("a", "b", "c"), "preferences.general.set")
+                new Preference<>("booleanPref", boolean.class, false, true, PREFERENCES_GENERAL_BOOLEAN),
+                new Preference<>("bytePref", byte.class, (byte) 0, (byte) 16, PREFERENCES_GENERAL_BYTE),
+                new Preference<>("shortPref", short.class, (short) 0, (short) 16, PREFERENCES_GENERAL_SHORT),
+                new Preference<>("charPref", char.class, (char) 0, (char) 16, PREFERENCES_GENERAL_CHAR),
+                new Preference<>("intPref", int.class, 0, 16, PREFERENCES_GENERAL_INT),
+                new Preference<>("longPref", long.class, (long) 0, (long) 16, PREFERENCES_GENERAL_LONG),
+                new Preference<>("floatPref", float.class, (float) 0, (float) 16, PREFERENCES_GENERAL_FLOAT),
+                new Preference<>("doublePref", double.class, (double) 0, (double) 16, PREFERENCES_GENERAL_DOUBLE),
+                new Preference<>("stringPref", String.class, null, "Hello World!", PREFERENCES_GENERAL_STRING),
+                new Preference<>("voidPref", void.class, null, null, PREFERENCES_GENERAL_VOID),
+                new Preference<>("setPref", Set.class, null, Set.of("a", "b", "c"), PREFERENCES_GENERAL_SET)
         )));
     }
 
@@ -107,9 +122,9 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
 
         check(clazz, Map.of("general", List.of(
-                new Preference<>("bytePref", byte.class, (byte) 5, (byte) 16, "preferences.general.byte"),
-                new Preference<>("stringPref", String.class, "this has to be \"quoted\" 'properly'", "Hello World!", "preferences.general.string"),
-                new Preference<>("setPref", Set.class, Set.of("Hello", "World"), Set.of("Foo", "Bar"), "preferences.general.set")
+                new Preference<>("bytePref", byte.class, (byte) 5, (byte) 16, PREFERENCES_GENERAL_BYTE),
+                new Preference<>("stringPref", String.class, "this has to be \"quoted\" 'properly'", "Hello World!", PREFERENCES_GENERAL_STRING),
+                new Preference<>("setPref", Set.class, Set.of("Hello", "World"), Set.of("Foo", "Bar"), PREFERENCES_GENERAL_SET)
         )));
     }
 
@@ -122,7 +137,7 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
 
         check(clazz, Map.of("general", List.of(
-                new Preference<>("bigIntPref", BigInteger.class, null, BigInteger.valueOf(12345), "preferences.general.big_int")
+                new Preference<>("bigIntPref", BigInteger.class, null, BigInteger.valueOf(12345), PREFERENCES_GENERAL_BIG_INT)
         )));
     }
 
@@ -135,7 +150,7 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
 
         check(clazz, Map.of("general", List.of(
-                new Preference<>("enumPref", StandardOpenOption.class, null, StandardOpenOption.APPEND, "preferences.general.enum")
+                new Preference<>("enumPref", StandardOpenOption.class, null, StandardOpenOption.APPEND, PREFERENCES_GENERAL_ENUM)
         )));
     }
 
@@ -148,8 +163,8 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
 
         check(clazz, Map.of("general", List.of(
-                new Preference<>("intPref", int.class, 0, 10, "preferences.general.int"),
-                new Preference<>("floatPref", float.class, 0f, 10f, "preferences.general.float")
+                new Preference<>("intPref", int.class, 0, 10, PREFERENCES_GENERAL_INT),
+                new Preference<>("floatPref", float.class, 0f, 10f, PREFERENCES_GENERAL_FLOAT)
         )));
     }
 
@@ -162,7 +177,7 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
 
         check(clazz, Map.of("general", List.of(
-                new Preference<>("listPref", List.class, null, List.of(1, 2, 3), "preferences.general.list")
+                new Preference<>("listPref", List.class, null, List.of(1, 2, 3), PREFERENCES_GENERAL_LIST)
         )));
     }
 
@@ -175,7 +190,7 @@ public class PreferenceAnnotationProcessorTest {
         var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
 
         check(clazz, Map.of("general", List.of(
-                new Preference<>("setPref", Set.class, null, Set.of(1, 2, 3), "preferences.general.set")
+                new Preference<>("setPref", Set.class, null, Set.of(1, 2, 3), PREFERENCES_GENERAL_SET)
         )));
     }
 
@@ -194,7 +209,7 @@ public class PreferenceAnnotationProcessorTest {
         beanClazz.getMethod("setBar", String.class).invoke(bean, "Bar");
 
         check(clazz, Map.of("general", List.of(
-                new Preference<>("objectPref", (Class) beanClazz, null, bean, "preferences.general.object")
+                new Preference<>("objectPref", (Class) beanClazz, null, bean, PREFERENCES_GENERAL_OBJECT)
         )));
     }
 
@@ -291,6 +306,12 @@ public class PreferenceAnnotationProcessorTest {
                 assertEquals(preference.key, key.invoke(keyObj), "Key of " + group + ":" + preference.name + " should be " + preference.key);
             }
         }
+
+        var clear = clazz.getMethod("clear");
+        clear.invoke(null);
+        groups.values().stream().flatMap(List::stream).forEach(preference -> {
+            assertFalse(sharedPreferences.contains(preference.key));
+        });
     }
 
     private String getGetterName(String name, Class<?> type, boolean fluent) {
