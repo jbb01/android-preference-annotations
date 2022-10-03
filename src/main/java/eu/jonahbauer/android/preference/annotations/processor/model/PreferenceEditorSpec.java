@@ -71,7 +71,7 @@ public class PreferenceEditorSpec {
         var deserializedType = preference.getDeserializedType();
         var serializer = preference.getSerializer();
         var key = preference.getKey();
-        var methodName = StringUtils.getGetterName(preference.getName(), deserializedType, context.isFluent());
+        var methodName = StringUtils.getSetterName(preference.getName(), context.isFluent());
 
         return MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC)
