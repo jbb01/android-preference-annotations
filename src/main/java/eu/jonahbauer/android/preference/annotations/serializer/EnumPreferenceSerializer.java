@@ -16,6 +16,10 @@ public final class EnumPreferenceSerializer<T extends Enum<T>> implements Prefer
     @Override
     public T deserialize(String value) {
         if (value == null) return null;
-        return Enum.valueOf(clazz, value);
+        try {
+            return Enum.valueOf(clazz, value);
+        } catch (IllegalArgumentException e) {
+            throw new PreferenceSerializationException(e);
+        }
     }
 }
