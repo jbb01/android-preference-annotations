@@ -2,13 +2,12 @@ package eu.jonahbauer.android.preference.annotations.processor.model;
 
 import com.squareup.javapoet.*;
 import eu.jonahbauer.android.preference.annotations.PreferenceGroup;
+import eu.jonahbauer.android.preference.annotations.processor.ClassNames;
 import eu.jonahbauer.android.preference.annotations.processor.StringUtils;
 import lombok.Value;
 
 import javax.lang.model.element.Modifier;
 import java.util.ArrayList;
-
-import static eu.jonahbauer.android.preference.annotations.processor.PreferenceProcessor.*;
 
 @Value
 public class PreferenceGroupSpec {
@@ -40,7 +39,7 @@ public class PreferenceGroupSpec {
         // constructor
         type.addMethod(MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
-                .addParameter(RESOURCES, "resources")
+                .addParameter(ClassNames.RESOURCES, "resources")
                 .addCode(constructorCode.build())
                 .build()
         );
@@ -85,7 +84,7 @@ public class PreferenceGroupSpec {
                 .returns(field.type)
                 .addCode(CodeBlock.builder()
                                  .beginControlFlow("if ($N == null)", sharedPreferences)
-                                 .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
+                                 .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
                                  .endControlFlow()
                                  .addStatement("return $N", field)
                                  .build()

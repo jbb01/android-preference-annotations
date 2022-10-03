@@ -1,7 +1,7 @@
 package eu.jonahbauer.android.preference.annotations.processor.model;
 
 import com.squareup.javapoet.*;
-import eu.jonahbauer.android.preference.annotations.processor.PreferenceProcessor;
+import eu.jonahbauer.android.preference.annotations.processor.ClassNames;
 import eu.jonahbauer.android.preference.annotations.processor.StringUtils;
 import lombok.Value;
 
@@ -35,7 +35,7 @@ public class PreferenceEditorSpec {
         var name = parent.nestedClass(EDITOR_CLASS_NAME);
 
         var editor = FieldSpec
-                .builder(PreferenceProcessor.SHARED_PREFERENCES_EDITOR, EDITOR_FIELD_NAME, Modifier.PRIVATE, Modifier.FINAL)
+                .builder(ClassNames.SHARED_PREFERENCES_EDITOR, EDITOR_FIELD_NAME, Modifier.PRIVATE, Modifier.FINAL)
                 .initializer("sharedPreferences.edit()")
                 .build();
 
@@ -87,7 +87,7 @@ public class PreferenceEditorSpec {
         return MethodSpec.methodBuilder("apply").addModifiers(Modifier.PUBLIC)
                 .addStatement("$N.apply()", editor)
                 .addJavadoc("Commit your preferences changes back from this Editor to the {@code SharedPreferences} object it is editing. This atomically performs the requested modifications, replacing whatever is currently in the SharedPreferences. ")
-                .addJavadoc("\n@see $T#apply()", PreferenceProcessor.SHARED_PREFERENCES_EDITOR)
+                .addJavadoc("\n@see $T#apply()", ClassNames.SHARED_PREFERENCES_EDITOR)
                 .build();
     }
 
@@ -96,7 +96,7 @@ public class PreferenceEditorSpec {
                 .addModifiers(Modifier.PUBLIC).returns(boolean.class)
                 .addStatement("return $N.commit()", editor)
                 .addJavadoc("Commit your preferences changes back from this Editor to the {@code SharedPreferences} object it is editing. This atomically performs the requested modifications, replacing whatever is currently in the SharedPreferences.")
-                .addJavadoc("\n@see $T#commit()", PreferenceProcessor.SHARED_PREFERENCES_EDITOR)
+                .addJavadoc("\n@see $T#commit()", ClassNames.SHARED_PREFERENCES_EDITOR)
                 .build();
     }
 
@@ -105,7 +105,7 @@ public class PreferenceEditorSpec {
                 .returns(name)
                 .addStatement("return new $T()", name)
                 .addJavadoc("Create a new Editor for these preferences, through which you can make modifications to the data in the preferences and atomically commit those changes back to the SharedPreferences object.")
-                .addJavadoc("\n@see $T#edit()", PreferenceProcessor.SHARED_PREFERENCES)
+                .addJavadoc("\n@see $T#edit()", ClassNames.SHARED_PREFERENCES)
                 .build();
     }
 }

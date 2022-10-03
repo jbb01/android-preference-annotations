@@ -2,7 +2,7 @@ package eu.jonahbauer.android.preference.annotations.processor.model;
 
 import com.squareup.javapoet.*;
 import eu.jonahbauer.android.preference.annotations.Preferences;
-import eu.jonahbauer.android.preference.annotations.processor.PreferenceProcessor;
+import eu.jonahbauer.android.preference.annotations.processor.ClassNames;
 import eu.jonahbauer.android.preference.annotations.processor.StringUtils;
 import eu.jonahbauer.android.preference.annotations.processor.TypeUtils;
 import lombok.Value;
@@ -10,8 +10,6 @@ import lombok.Value;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
-
-import static eu.jonahbauer.android.preference.annotations.processor.PreferenceProcessor.*;
 
 @Value
 public class PreferencesSpec {
@@ -40,7 +38,7 @@ public class PreferencesSpec {
         builder.addMethod(constructor(root));
 
         // shared preferences
-        var sharedPreferencesField = FieldSpec.builder(SHARED_PREFERENCES, "sharedPreferences", Modifier.PRIVATE, Modifier.STATIC).build();
+        var sharedPreferencesField = FieldSpec.builder(ClassNames.SHARED_PREFERENCES, "sharedPreferences", Modifier.PRIVATE, Modifier.STATIC).build();
         context.setSharedPreferences(sharedPreferencesField);
         builder.addField(sharedPreferencesField);
 
@@ -82,26 +80,26 @@ public class PreferencesSpec {
     private static MethodSpec constructor(Preferences root) {
         return MethodSpec.constructorBuilder()
                 .addModifiers(root.makeFile() ? Modifier.PRIVATE : Modifier.PROTECTED)
-                .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "This class is not supposed to be instantiated.")
+                .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "This class is not supposed to be instantiated.")
                 .build();
     }
 
     private static MethodSpec.Builder init(FieldSpec sharedPreferencesField) {
         return MethodSpec.methodBuilder("init")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addParameter(SHARED_PREFERENCES, "pSharedPreferences")
-                .addParameter(RESOURCES, "pResources")
-                .addJavadoc("Initialize this preference class to use the given {@link $T}\n", SHARED_PREFERENCES)
+                .addParameter(ClassNames.SHARED_PREFERENCES, "pSharedPreferences")
+                .addParameter(ClassNames.RESOURCES, "pResources")
+                .addJavadoc("Initialize this preference class to use the given {@link $T}\n", ClassNames.SHARED_PREFERENCES)
                 .addJavadoc("This function is supposed to be called from the applications {@code onCreate()} method.\n")
-                .addJavadoc("@param pSharedPreferences the {@link $T} to be used. Not {@code null}.\n", SHARED_PREFERENCES)
-                .addJavadoc("@param pResources the {@link $T} from which the preference keys should be loaded. Not {@code null}.\n", RESOURCES)
-                .addJavadoc("@throws $T if this preference class has already been initialized.\n", ILLEGAL_STATE_EXCEPTION)
+                .addJavadoc("@param pSharedPreferences the {@link $T} to be used. Not {@code null}.\n", ClassNames.SHARED_PREFERENCES)
+                .addJavadoc("@param pResources the {@link $T} from which the preference keys should be loaded. Not {@code null}.\n", ClassNames.RESOURCES)
+                .addJavadoc("@throws $T if this preference class has already been initialized.\n", ClassNames.ILLEGAL_STATE_EXCEPTION)
                 .addCode(CodeBlock.builder()
                                  .beginControlFlow("if ($N != null)", sharedPreferencesField)
-                                 .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "Preferences have already been initialized.")
+                                 .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "Preferences have already been initialized.")
                                  .endControlFlow()
-                                 .addStatement("$T.requireNonNull(pSharedPreferences, $S)", OBJECTS, "SharedPreferences must not be null.")
-                                 .addStatement("$T.requireNonNull(pResources, $S)", OBJECTS, "Resources must not be null.")
+                                 .addStatement("$T.requireNonNull(pSharedPreferences, $S)", ClassNames.OBJECTS, "SharedPreferences must not be null.")
+                                 .addStatement("$T.requireNonNull(pResources, $S)", ClassNames.OBJECTS, "Resources must not be null.")
                                  .addStatement("$N = pSharedPreferences", sharedPreferencesField)
                                  .build()
                 );
@@ -111,10 +109,10 @@ public class PreferencesSpec {
         return MethodSpec.methodBuilder("clear")
                 .addModifiers(Modifier.PUBLIC)
                 .beginControlFlow("if ($N == null)", sharedPreferencesField)
-                .addStatement("throw new $T($S)", ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
+                .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
                 .endControlFlow()
                 .addStatement("$N.edit().clear().apply()", sharedPreferencesField)
-                .addJavadoc("@see $T#clear()", PreferenceProcessor.SHARED_PREFERENCES_EDITOR)
+                .addJavadoc("@see $T#clear()", ClassNames.SHARED_PREFERENCES_EDITOR)
                 .build();
     }
 }
