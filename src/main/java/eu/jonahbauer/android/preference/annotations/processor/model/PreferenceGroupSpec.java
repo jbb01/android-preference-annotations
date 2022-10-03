@@ -79,16 +79,11 @@ public class PreferenceGroupSpec {
     }
 
     private static MethodSpec accessor(Context context, String name, FieldSpec field, FieldSpec sharedPreferences) {
-        return MethodSpec.methodBuilder(StringUtils.getGetterName(name, field.type, context.isFluent()))
+        var builder = MethodSpec.methodBuilder(StringUtils.getGetterName(name, field.type, context.isFluent()))
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .returns(field.type)
-                .addCode(CodeBlock.builder()
-                                 .beginControlFlow("if ($N == null)", sharedPreferences)
-                                 .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
-                                 .endControlFlow()
-                                 .addStatement("return $N", field)
-                                 .build()
-                )
+                .returns(field.type);
+        return PreferencesSpec.addInitCheck(builder, sharedPreferences)
+                .addStatement("return $N", field)
                 .build();
     }
 }

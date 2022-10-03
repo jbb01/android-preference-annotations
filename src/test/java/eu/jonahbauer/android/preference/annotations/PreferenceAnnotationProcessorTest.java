@@ -312,6 +312,10 @@ public class PreferenceAnnotationProcessorTest {
         groups.values().stream().flatMap(List::stream).forEach(preference -> {
             assertFalse(sharedPreferences.contains(preference.key));
         });
+
+        var getSharedPreferences = clazz.getMethod("getSharedPreferences");
+        var sharedPreferences = getSharedPreferences.invoke(null);
+        assertSame(this.sharedPreferences, sharedPreferences);
     }
 
     private String getGetterName(String name, Class<?> type, boolean fluent) {

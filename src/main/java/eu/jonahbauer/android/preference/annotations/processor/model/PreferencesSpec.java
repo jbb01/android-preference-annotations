@@ -58,6 +58,7 @@ public class PreferencesSpec {
 
         builder.addMethod(initMethod.build());
         builder.addMethod(clear(sharedPreferencesField));
+        builder.addMethod(getSharedPreferences(sharedPreferencesField));
 
         return new PreferencesSpec(JavaFile.builder(name.packageName(), builder.build()).indent("    ").build());
     }
@@ -106,13 +107,31 @@ public class PreferencesSpec {
     }
 
     private static MethodSpec clear(FieldSpec sharedPreferencesField) {
-        return MethodSpec.methodBuilder("clear")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .beginControlFlow("if ($N == null)", sharedPreferencesField)
-                .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
-                .endControlFlow()
+        var builder = MethodSpec.methodBuilder("clear")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC);
+        return addInitCheck(builder, sharedPreferencesField)
                 .addStatement("$N.edit().clear().apply()", sharedPreferencesField)
                 .addJavadoc("@see $T#clear()", ClassNames.SHARED_PREFERENCES_EDITOR)
                 .build();
+    }
+
+    private static MethodSpec getSharedPreferences(FieldSpec sharedPreferencesField) {
+        var builder = MethodSpec.methodBuilder("getSharedPreferences")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ClassNames.SHARED_PREFERENCES)
+                .addJavadoc("Returns the underlying {@link $T} instance.\n", ClassNames.SHARED_PREFERENCES)
+                .addJavadoc("Modifying the underlying {@code SharedPreferences} instance is not recommended as it can\n")
+                .addJavadoc("lead to invalid data which can cause {@code PreferenceSerializer}s to throw exceptions.\n")
+                .addJavadoc("@throws $T if this preference class has not yet been initialized.\n", ClassNames.ILLEGAL_STATE_EXCEPTION)
+                .addJavadoc("@return the underlying {@code SharedPreferences} instance");
+        return addInitCheck(builder, sharedPreferencesField)
+                .addStatement("return $N", sharedPreferencesField)
+                .build();
+    }
+
+    static MethodSpec.Builder addInitCheck(MethodSpec.Builder builder, FieldSpec sharedPreferencesField) {
+        return builder.beginControlFlow("if ($N == null)", sharedPreferencesField)
+                .addStatement("throw new $T($S)", ClassNames.ILLEGAL_STATE_EXCEPTION, "Preferences have not yet been initialized.")
+                .endControlFlow();
     }
 }
