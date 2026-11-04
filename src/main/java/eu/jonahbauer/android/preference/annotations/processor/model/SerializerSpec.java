@@ -53,7 +53,7 @@ public class SerializerSpec {
         var serializerType = withTypeArguments(context, (DeclaredType) serializerRawType, declaredType);
         var serializerTypeName = TypeName.get(serializerType);
         // find serializer interface in type hierarchy
-        var serializerInt = findSerializerType(context, serializerType);
+        var serializerInt = findInterfaceType(context, serializerType, PreferenceSerializer.class);
 
         TypeMirror serializedType, deserializedType;
 
@@ -92,7 +92,7 @@ public class SerializerSpec {
      * @param serializer the raw declared serializer type
      * @return the declared serializer type, optionally with type arguments
      */
-    private static DeclaredType withTypeArguments(Context context, DeclaredType serializer, TypeMirror declaredType) {
+    static DeclaredType withTypeArguments(Context context, DeclaredType serializer, TypeMirror declaredType) {
         // converting to element and back ensures that type arguments are available
         serializer = (DeclaredType) serializer.asElement().asType();
         var typeArguments = serializer.getTypeArguments();
@@ -108,21 +108,22 @@ public class SerializerSpec {
 
     /**
      * Traverses the type hierarchy of the given {@code type} to find the generic type of the implemented
-     * {@link PreferenceSerializer} interface.
+     * serializer interface.
      * @param context the processing context
-     * @param type the type of the actual {@link PreferenceSerializer} implementation
-     * @return the type (with generics) of the {@link PreferenceSerializer} interface or {@code null} if not found
+     * @param type the type of the actual serializer implementation
+     * @param serializerInterface the serializer interface to look for
+     * @return the type (with generics) of the serializer interface or {@code null} if not found
      */
-    private static DeclaredType findSerializerType(Context context, TypeMirror type) {
+    static DeclaredType findInterfaceType(Context context, TypeMirror type, Class<?> serializerInterface) {
         var typeUtils = context.getTypeUtils();
-        if (context.isSame(type, PreferenceSerializer.class)) {
+        if (context.isSame(type, serializerInterface)) {
             return (DeclaredType) type;
         }
 
         for (TypeMirror supertype : typeUtils.directSupertypes(type)) {
             if (context.isSame(supertype, Object.class)) continue;
 
-            var serializerType = findSerializerType(context, supertype);
+            var serializerType = findInterfaceType(context, supertype, serializerInterface);
             if (serializerType != null) {
                 return serializerType;
             }
@@ -159,7 +160,7 @@ public class SerializerSpec {
      * @return {@code true} if the type has a constructor that takes one argument of type {@link Class}, {@code false}
      * if the type has a constructor that takes no arguments, {@code null} if no suitable constructor could be found
      */
-    private static Boolean hasClassConstructor(Context context, DeclaredType serializer) {
+    static Boolean hasClassConstructor(Context context, DeclaredType serializer) {
         for (var element : serializer.asElement().getEnclosedElements()) {
             if (element.getKind() != ElementKind.CONSTRUCTOR) continue;
 
