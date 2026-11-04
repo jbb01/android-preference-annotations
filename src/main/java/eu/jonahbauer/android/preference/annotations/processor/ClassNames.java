@@ -12,4 +12,7 @@ public class ClassNames {
     public static final ClassName RESOURCES = ClassName.get("android.content.res", "Resources");
     public static final ClassName ILLEGAL_STATE_EXCEPTION = ClassName.get(IllegalStateException.class);
     public static final ClassName OBJECTS = ClassName.get(Objects.class);
+    public static final ClassName JSON_OBJECT = ClassName.get("org.json", "JSONObject");
+    public static final ClassName JSON_ARRAY = ClassName.get("org.json", "JSONArray");
+    public static final ClassName JSON_EXCEPTION = ClassName.get("org.json", "JSONException");
 }

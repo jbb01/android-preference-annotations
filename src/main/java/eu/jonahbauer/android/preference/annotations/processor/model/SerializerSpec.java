@@ -22,9 +22,11 @@ public class SerializerSpec {
     TypeMirror deserializedType;
     TypeMirror serializedType;
     FieldSpec serializer;
+    boolean enumDefault;
 
     public static SerializerSpec create(Context context, int index, Preference preference) {
         var declaredType = TypeUtils.mirror(preference, Preference::type);
+        var enumDefault = false;
 
         // no serializer
         var serializerRawType = TypeUtils.mirror(preference, Preference::serializer);
@@ -32,6 +34,7 @@ public class SerializerSpec {
             if (context.isEnum(declaredType)) {
                 // use enum serializer for enum types when no serializer is specified
                 serializerRawType = context.getType(EnumPreferenceSerializer.class);
+                enumDefault = true;
             } else if (context.isSame(declaredType, Set.class)) {
                 return new SerializerSpec(context.getType(Set.class, String.class));
             } else {
@@ -78,12 +81,12 @@ public class SerializerSpec {
             } else {
                 builder.initializer("new $T()", serializerTypeName);
             }
-            return new SerializerSpec(deserializedType, serializedType, builder.build());
+            return new SerializerSpec(deserializedType, serializedType, builder.build(), enumDefault);
         }
     }
 
     private SerializerSpec(TypeMirror type) {
-        this(type, type, null);
+        this(type, type, null, false);
     }
 
     /**

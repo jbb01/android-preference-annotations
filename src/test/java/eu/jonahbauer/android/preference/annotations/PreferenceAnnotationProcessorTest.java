@@ -9,6 +9,7 @@ import eu.jonahbauer.android.preference.annotations.processor.PreferenceProcesso
 import eu.jonahbauer.android.preference.annotations.util.CompilationClassLoader;
 import eu.jonahbauer.android.preference.annotations.util.InMemoryResources;
 import eu.jonahbauer.android.preference.annotations.util.InMemorySharedPreferences;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -211,6 +212,131 @@ public class PreferenceAnnotationProcessorTest {
         check(clazz, Map.of("general", List.of(
                 new Preference<>("objectPref", (Class) beanClazz, null, bean, PREFERENCES_GENERAL_OBJECT)
         )));
+    }
+
+    @Test
+    public void testExportImport() throws Exception {
+        var compilation = compile("input/TestPreferencesExport.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        var init = clazz.getMethod("init", SharedPreferences.class, Resources.class);
+        init.invoke(null, sharedPreferences, resources);
+
+        var general = clazz.getMethod("general").invoke(null);
+        var generalClass = general.getClass();
+
+        var pointClass = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.sources.TestPreferencesExport$Point");
+        var point = pointClass.getConstructor(int.class, int.class).newInstance(3, 4);
+
+        generalClass.getMethod("booleanPref", boolean.class).invoke(general, true);
+        generalClass.getMethod("bytePref", byte.class).invoke(general, (byte) 5);
+        generalClass.getMethod("shortPref", short.class).invoke(general, (short) 6);
+        generalClass.getMethod("charPref", char.class).invoke(general, 'x');
+        generalClass.getMethod("intPref", int.class).invoke(general, 7);
+        generalClass.getMethod("longPref", long.class).invoke(general, 8L);
+        generalClass.getMethod("floatPref", float.class).invoke(general, 9.5f);
+        generalClass.getMethod("doublePref", double.class).invoke(general, 10.5);
+        generalClass.getMethod("stringPref", String.class).invoke(general, "Hello World!");
+        generalClass.getMethod("setPref", Set.class).invoke(general, Set.of("a", "b", "c"));
+        generalClass.getMethod("enumPref", StandardOpenOption.class).invoke(general, StandardOpenOption.APPEND);
+        generalClass.getMethod("bigIntPref", BigInteger.class).invoke(general, BigInteger.valueOf(12345));
+        generalClass.getMethod("objectPref", pointClass).invoke(general, point);
+        generalClass.getMethod("listPref", String.class).invoke(general, "not exported");
+
+        var json = (JSONObject) clazz.getMethod("exportPreferences").invoke(null);
+
+        assertTrue(json.getBoolean(PREFERENCES_GENERAL_BOOLEAN));
+        assertEquals(5, json.getInt(PREFERENCES_GENERAL_BYTE));
+        assertEquals(6, json.getInt(PREFERENCES_GENERAL_SHORT));
+        assertEquals('x', json.getInt(PREFERENCES_GENERAL_CHAR));
+        assertEquals(7, json.getInt(PREFERENCES_GENERAL_INT));
+        assertEquals(8L, json.getLong(PREFERENCES_GENERAL_LONG));
+        assertEquals(9.5, json.getDouble(PREFERENCES_GENERAL_FLOAT));
+        assertEquals(10.5, json.getDouble(PREFERENCES_GENERAL_DOUBLE));
+        assertEquals("Hello World!", json.getString(PREFERENCES_GENERAL_STRING));
+        assertEquals("APPEND", json.getString(PREFERENCES_GENERAL_ENUM));
+        assertEquals("12345", json.getString(PREFERENCES_GENERAL_BIG_INT));
+
+        var array = json.getJSONArray(PREFERENCES_GENERAL_SET);
+        var set = new java.util.HashSet<String>();
+        for (int i = 0; i < array.length(); i++) set.add(array.getString(i));
+        assertEquals(Set.of("a", "b", "c"), set);
+
+        var object = json.getJSONObject(PREFERENCES_GENERAL_OBJECT);
+        assertEquals(3, object.getInt("x"));
+        assertEquals(4, object.getInt("y"));
+
+        assertFalse(json.has(PREFERENCES_GENERAL_LIST), "preferences without export = true must not be exported");
+        assertFalse(json.has(PREFERENCES_GENERAL_VOID), "void preferences must not be exported");
+
+        clazz.getMethod("clear").invoke(null);
+        clazz.getMethod("importPreferences", JSONObject.class).invoke(null, json);
+
+        assertEquals(true, generalClass.getMethod("booleanPref").invoke(general));
+        assertEquals((byte) 5, generalClass.getMethod("bytePref").invoke(general));
+        assertEquals((short) 6, generalClass.getMethod("shortPref").invoke(general));
+        assertEquals('x', generalClass.getMethod("charPref").invoke(general));
+        assertEquals(7, generalClass.getMethod("intPref").invoke(general));
+        assertEquals(8L, generalClass.getMethod("longPref").invoke(general));
+        assertEquals(9.5f, generalClass.getMethod("floatPref").invoke(general));
+        assertEquals(10.5, generalClass.getMethod("doublePref").invoke(general));
+        assertEquals("Hello World!", generalClass.getMethod("stringPref").invoke(general));
+        assertEquals(Set.of("a", "b", "c"), generalClass.getMethod("setPref").invoke(general));
+        assertEquals(StandardOpenOption.APPEND, generalClass.getMethod("enumPref").invoke(general));
+        assertEquals(BigInteger.valueOf(12345), generalClass.getMethod("bigIntPref").invoke(general));
+        assertEquals(point, generalClass.getMethod("objectPref").invoke(general));
+        assertNull(generalClass.getMethod("listPref").invoke(general), "preferences without export = true must not be imported");
+
+        // importing an empty JSONObject must not change any values
+        clazz.getMethod("importPreferences", JSONObject.class).invoke(null, new JSONObject());
+        assertEquals(7, generalClass.getMethod("intPref").invoke(general));
+        assertEquals("Hello World!", generalClass.getMethod("stringPref").invoke(general));
+
+        // null values must be omitted during export and must not reset preferences during import
+        generalClass.getMethod("stringPref", String.class).invoke(general, (Object) null);
+        json = (JSONObject) clazz.getMethod("exportPreferences").invoke(null);
+        assertFalse(json.has(PREFERENCES_GENERAL_STRING), "null values must not be exported");
+        generalClass.getMethod("stringPref", String.class).invoke(general, "Hello World!");
+        clazz.getMethod("importPreferences", JSONObject.class).invoke(null, json);
+        assertEquals("Hello World!", generalClass.getMethod("stringPref").invoke(general));
+
+        // the import must be atomic
+        var invalid = new JSONObject()
+                .put(PREFERENCES_GENERAL_INT, 42)
+                .put(PREFERENCES_GENERAL_LONG, "not a number");
+        var importPreferences = clazz.getMethod("importPreferences", JSONObject.class);
+        var exception = assertThrows(InvocationTargetException.class, () -> importPreferences.invoke(null, invalid));
+        assertInstanceOf(org.json.JSONException.class, exception.getCause());
+        assertEquals(7, generalClass.getMethod("intPref").invoke(general), "a failed import must not change any values");
+    }
+
+    @Test
+    public void testExportWithCustomSerializerRequiresExportSerializer() {
+        var compilation = compile("input/TestPreferencesExportMissingExportSerializer.java");
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("requires an exportSerializer");
+    }
+
+    @Test
+    public void testExportVoidPreference() {
+        var compilation = compile("input/TestPreferencesExportVoid.java");
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("Cannot export void preference");
+    }
+
+    @Test
+    public void testNoExportMethodsWithoutExportedPreferences() throws Exception {
+        var compilation = compile("input/TestPreferences.java");
+        assertThat(compilation).succeededWithoutWarnings();
+
+        var classLoader = new CompilationClassLoader(PreferenceAnnotationProcessorTest.class.getClassLoader(), compilation);
+        var clazz = classLoader.loadClass("eu.jonahbauer.android.preference.annotations.generated.TestPreferences");
+
+        assertThrows(NoSuchMethodException.class, () -> clazz.getMethod("exportPreferences"));
+        assertThrows(NoSuchMethodException.class, () -> clazz.getMethod("importPreferences", org.json.JSONObject.class));
     }
 
     @Test

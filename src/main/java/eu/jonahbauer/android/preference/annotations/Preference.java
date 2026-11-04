@@ -1,5 +1,6 @@
 package eu.jonahbauer.android.preference.annotations;
 
+import eu.jonahbauer.android.preference.annotations.serializer.PreferenceExportSerializer;
 import eu.jonahbauer.android.preference.annotations.serializer.PreferenceSerializer;
 
 import java.lang.annotation.Retention;
@@ -124,4 +125,41 @@ public @interface Preference {
      * </p>
      */
     Class<? extends PreferenceSerializer> serializer() default PreferenceSerializer.class;
+
+    /**
+     * Whether this preference should be included in the generated {@code exportPreferences()} and
+     * {@code importPreferences(JSONObject)} methods. The methods are only generated when at least one
+     * preference is marked with {@code export = true}.
+     * <p>
+     *     Preferences of the natively supported types (primitives, {@code String}, {@code Set<String>} and enums
+     *     without a custom {@linkplain #serializer() serializer}) are exported to their natural JSON representation
+     *     automatically. Preferences using a custom serializer must additionally provide an
+     *     {@linkplain #exportSerializer() export serializer}.
+     * </p>
+     * <p>
+     *     Preferences with a value of {@code null} are omitted during export. Preferences not present in the imported
+     *     {@code JSONObject} are left unchanged during import, i.e. importing does not reset a preference to
+     *     {@code null}. The import is atomic: if any of the preferences cannot be imported none of them are changed.
+     * </p>
+     * @see #exportSerializer()
+     */
+    boolean export() default false;
+
+    /**
+     * <p>
+     *     An export serializer used for converting the preference's runtime type to a JSON representation and back
+     *     when {@linkplain #export() exporting} the preference.
+     * </p>
+     * <p>
+     *     An export serializer must have at most one type argument {@code T} - the
+     *     {@linkplain #type() declared preference type} - and must either have a default constructor or a
+     *     constructor taking exactly one argument of type {@link Class Class&lt;? extends T&gt;} - just like a
+     *     {@linkplain #serializer() serializer}. Its source type must match the runtime type of the preference and
+     *     its target type must be a primitive wrapper (except {@code Character}), {@code String},
+     *     {@code org.json.JSONObject} or {@code org.json.JSONArray}.
+     * </p>
+     * @see #export()
+     * @see PreferenceExportSerializer
+     */
+    Class<? extends PreferenceExportSerializer> exportSerializer() default PreferenceExportSerializer.class;
 }

@@ -15,6 +15,7 @@ public class PreferenceGroupSpec {
     FieldSpec field;
     MethodSpec accessor;
     TypeSpec type;
+    boolean export;
 
     public static PreferenceGroupSpec create(Context context, int index, PreferenceGroup group) {
         if (!check(context, group)) return null;
@@ -50,9 +51,14 @@ public class PreferenceGroupSpec {
             PreferenceEditorSpec.create(context, name, preferenceSpecs).apply(type);
         }
 
+        var exportSpec = PreferenceExportSpec.create(context, preferenceSpecs);
+        if (exportSpec != null) {
+            exportSpec.apply(type);
+        }
+
         var field = field(index, name);
         var accessor = accessor(context, group.name(), field, context.getSharedPreferences());
-        return new PreferenceGroupSpec(name, field, accessor, type.build());
+        return new PreferenceGroupSpec(name, field, accessor, type.build(), exportSpec != null);
     }
 
     public void apply(TypeSpec.Builder builder) {
