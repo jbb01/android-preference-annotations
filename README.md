@@ -154,6 +154,57 @@ public class JsonBeanSerializer<T> implements PreferenceSerializer<T, String> {
 }
 ```
 
+### export & import
+
+Preferences marked with `export = true` can be exported to and imported from a `org.json.JSONObject`:
+
+```
+@Preference(name = "int_pref", type = int.class, export = true)
+```
+```java
+JSONObject json = AppPreferences.exportPreferences();
+// ...
+AppPreferences.importPreferences(json);
+```
+
+The static methods `exportPreferences()` and `importPreferences(JSONObject)` are generated as soon as at
+least one preference is marked with `export = true`. The exported preferences are keyed by their preference
+key. Preferences with a value of `null` are omitted during export and preferences missing from the `JSONObject`
+are left unchanged during import, i.e. importing does not reset a preference to `null`. The import is atomic:
+all preferences are written using a single `SharedPreferences.Editor`, so if any of them cannot be imported none of
+them are changed.
+
+Preferences of the natively supported types are exported to their natural JSON representation automatically
+(`byte`, `short` and `char` are exported as numbers and `Set<String>` is exported as an array of strings).
+Enums are exported via the default `EnumPreferenceExportSerializer` (using `Enum.name`), analogous to how
+`EnumPreferenceSerializer` is used as their default serializer.
+
+Preferences using a custom serializer must additionally specify an export serializer that converts between
+the runtime type and a JSON representation - one of the primitive wrappers, `String`, `JSONObject` or
+`JSONArray`. This avoids exported files containing strings that are themselves serialized JSON:
+
+```
+@Preference(name = "bean_pref", type = Bean.class, serializer = JsonBeanSerializer.class, exportSerializer = BeanExportSerializer.class)
+```
+```java
+public class BeanExportSerializer implements PreferenceExportSerializer<Bean, JSONObject> {
+    public JSONObject export(Bean value) {
+        if (value == null) return null;
+        return new JSONObject().put("foo", value.getFoo()).put("bar", value.getBar());
+    }
+
+    public Bean restore(JSONObject value) {
+        if (value == null) return null;
+        Bean bean = new Bean();
+        bean.setFoo(value.optString("foo"));
+        bean.setBar(value.optString("bar"));
+        return bean;
+    }
+}
+```
+
+Export serializers follow the same conventions as serializers regarding type parameters and constructors.
+
 ### encryption
 
 Since the generated class can be initialized with any `SharedPreferences` implementation, you can easily

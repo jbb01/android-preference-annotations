@@ -15,7 +15,7 @@ public class PreferenceEditorSpec {
     private static final String EDITOR_CLASS_NAME = "Editor";
     private static final String EDITOR_FIELD_NAME = "editor";
 
-    private static final Map<String, String> SETTER = Map.of(
+    static final Map<String, String> SETTER = Map.of(
             "boolean", "$N.putBoolean($N, serializedValue)",
             "byte", "$N.putInt($N, (int) serializedValue)",
             "char", "$N.putInt($N, (int) serializedValue)",

@@ -10,6 +10,8 @@ import lombok.Value;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 
 @Value
 public class PreferencesSpec {
@@ -47,10 +49,12 @@ public class PreferencesSpec {
 
         // group classes, fields, accessors and init statements
         var groups = root.value();
+        var groupSpecs = new ArrayList<PreferenceGroupSpec>();
         for (int i = 0; i < groups.length; i++) {
             var spec = PreferenceGroupSpec.create(context, i, groups[i]);
             if (spec == null) continue;
 
+            groupSpecs.add(spec);
             spec.apply(builder);
 
             initMethod.addStatement("$N = new $T(pResources)", spec.getField(), spec.getName());
@@ -59,6 +63,11 @@ public class PreferencesSpec {
         builder.addMethod(initMethod.build());
         builder.addMethod(clear(sharedPreferencesField));
         builder.addMethod(getSharedPreferences(sharedPreferencesField));
+
+        if (groupSpecs.stream().anyMatch(PreferenceGroupSpec::isExport)) {
+            builder.addMethod(exportPreferences(sharedPreferencesField, groupSpecs));
+            builder.addMethod(importPreferences(sharedPreferencesField, groupSpecs));
+        }
 
         return new PreferencesSpec(JavaFile.builder(name.packageName(), builder.build()).indent("    ").build());
     }
@@ -127,6 +136,44 @@ public class PreferencesSpec {
         return addInitCheck(builder, sharedPreferencesField)
                 .addStatement("return $N", sharedPreferencesField)
                 .build();
+    }
+
+    private static MethodSpec exportPreferences(FieldSpec sharedPreferencesField, List<PreferenceGroupSpec> groups) {
+        var builder = MethodSpec.methodBuilder("exportPreferences")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ClassNames.JSON_OBJECT)
+                .addException(ClassNames.JSON_EXCEPTION)
+                .addJavadoc("Exports all preferences marked with {@code export = true} into a {@link $T}.\n", ClassNames.JSON_OBJECT)
+                .addJavadoc("The preferences are keyed by their preference key. Preferences with a value of {@code null} are omitted.\n")
+                .addJavadoc("@return a {@link $T} containing the exported preferences\n", ClassNames.JSON_OBJECT)
+                .addJavadoc("@throws $T if this preference class has not yet been initialized.\n", ClassNames.ILLEGAL_STATE_EXCEPTION);
+        addInitCheck(builder, sharedPreferencesField)
+                .addStatement("var json = new $T()", ClassNames.JSON_OBJECT);
+        for (var group : groups) {
+            if (!group.isExport()) continue;
+            builder.addStatement("$N.exportPreferences(json)", group.getField());
+        }
+        return builder.addStatement("return json").build();
+    }
+
+    private static MethodSpec importPreferences(FieldSpec sharedPreferencesField, List<PreferenceGroupSpec> groups) {
+        var builder = MethodSpec.methodBuilder("importPreferences")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addParameter(ClassNames.JSON_OBJECT, "json")
+                .addException(ClassNames.JSON_EXCEPTION)
+                .addJavadoc("Imports all preferences marked with {@code export = true} from the given {@link $T}.\n", ClassNames.JSON_OBJECT)
+                .addJavadoc("Preferences not present in the given {@link $T} (or with a value of {@code null}) are left unchanged.\n", ClassNames.JSON_OBJECT)
+                .addJavadoc("The import is atomic, i.e. if any of the preferences cannot be imported none of them are changed.\n")
+                .addJavadoc("@param json a {@link $T} as returned by {@code exportPreferences()}. Not {@code null}.\n", ClassNames.JSON_OBJECT)
+                .addJavadoc("@throws $T if this preference class has not yet been initialized.\n", ClassNames.ILLEGAL_STATE_EXCEPTION);
+        addInitCheck(builder, sharedPreferencesField)
+                .addStatement("$T.requireNonNull(json, $S)", ClassNames.OBJECTS, "JSONObject must not be null.")
+                .addStatement("var editor = $N.edit()", sharedPreferencesField);
+        for (var group : groups) {
+            if (!group.isExport()) continue;
+            builder.addStatement("$N.importPreferences(json, editor)", group.getField());
+        }
+        return builder.addStatement("editor.apply()").build();
     }
 
     static MethodSpec.Builder addInitCheck(MethodSpec.Builder builder, FieldSpec sharedPreferencesField) {
